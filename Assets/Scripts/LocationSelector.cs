@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.EventSystems;
 
 public class LocationSelector : MonoBehaviour
 {
@@ -14,6 +15,11 @@ public class LocationSelector : MonoBehaviour
     public TMP_Text locationNameText;
     public TMP_Text locationTypeText;
     public TMP_Text locationDescriptionText;
+
+    [Header("장소 내부 UI")]
+    public GameObject placeInteriorPanel;
+    public TMP_Text placeNameText;
+    public TMP_Text placeDescriptionText;
 
     [Header("카메라 설정")]
     public float zoomedCameraSize = 2.5f;
@@ -30,6 +36,10 @@ public class LocationSelector : MonoBehaviour
 
     private Vector3 targetCameraPosition;
     private float targetCameraSize;
+
+    // 처음 카메라 위치와 확대값 저장
+    private Vector3 initialCameraPosition;
+    private float initialCameraSize;
 
     void Start()
     {
@@ -51,13 +61,23 @@ public class LocationSelector : MonoBehaviour
             }
         }
 
+        // 게임 시작 시 장소 내부 화면 숨기기
+        if (placeInteriorPanel != null)
+        {
+            placeInteriorPanel.SetActive(false);
+        }
+
         // 카메라 초기 설정
         mainCamera = Camera.main;
 
         if (mainCamera != null)
         {
-            targetCameraPosition = mainCamera.transform.position;
-            targetCameraSize = mainCamera.orthographicSize;
+            // 최초 카메라 위치와 확대값 저장
+            initialCameraPosition = mainCamera.transform.position;
+            initialCameraSize = mainCamera.orthographicSize;
+
+            targetCameraPosition = initialCameraPosition;
+            targetCameraSize = initialCameraSize;
         }
 
         // 기존 지역 색상 저장 로직 유지
@@ -72,10 +92,29 @@ public class LocationSelector : MonoBehaviour
 
     void Update()
     {
+        // 장소 내부 화면이 열려 있으면 지도 클릭 방지
+        if (placeInteriorPanel != null &&
+            placeInteriorPanel.activeSelf)
+        {
+            return;
+        }
+
         if (Input.GetMouseButtonDown(0))
         {
+            // UI 버튼이나 패널 클릭 시 지도 선택 방지
+            if (EventSystem.current != null &&
+                EventSystem.current.IsPointerOverGameObject())
+            {
+                return;
+            }
+
+            if (mainCamera == null)
+            {
+                return;
+            }
+
             Vector3 mousePosition =
-                Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                mainCamera.ScreenToWorldPoint(Input.mousePosition);
 
             Vector2 clickPosition =
                 new Vector2(mousePosition.x, mousePosition.y);
@@ -93,20 +132,19 @@ public class LocationSelector : MonoBehaviour
 
     void LateUpdate()
     {
-        // 카메라가 없으면 종료
         if (mainCamera == null)
         {
             return;
         }
 
-        // 선택한 지역을 중심으로 부드럽게 이동
+        // 카메라 부드럽게 이동
         mainCamera.transform.position = Vector3.Lerp(
             mainCamera.transform.position,
             targetCameraPosition,
             cameraMoveSpeed * Time.deltaTime
         );
 
-        // 카메라 확대
+        // 카메라 확대 및 축소
         if (mainCamera.orthographic)
         {
             mainCamera.orthographicSize = Mathf.Lerp(
@@ -159,7 +197,7 @@ public class LocationSelector : MonoBehaviour
             targetCameraPosition = new Vector3(
                 locationPosition.x,
                 locationPosition.y,
-                mainCamera.transform.position.z
+                initialCameraPosition.z
             );
 
             targetCameraSize = zoomedCameraSize;
@@ -171,26 +209,22 @@ public class LocationSelector : MonoBehaviour
 
         if (data != null)
         {
-            // 정보 패널 표시
             if (locationInfoPanel != null)
             {
                 locationInfoPanel.SetActive(true);
             }
 
-            // 지역 이름 표시
             if (locationNameText != null)
             {
                 locationNameText.text = data.locationName;
             }
 
-            // 지역 유형 표시
             if (locationTypeText != null)
             {
                 locationTypeText.text =
                     data.locationType.ToString();
             }
 
-            // 지역 설명 표시
             if (locationDescriptionText != null)
             {
                 locationDescriptionText.text =
@@ -211,7 +245,6 @@ public class LocationSelector : MonoBehaviour
 
     void UpdatePanelPosition()
     {
-        // UI 위치 계산에 필요한 요소가 없으면 종료
         if (mainCamera == null ||
             canvasRect == null ||
             panelRect == null ||
@@ -242,7 +275,6 @@ public class LocationSelector : MonoBehaviour
             return;
         }
 
-        // 패널 크기와 Canvas 경계 확인
         float panelWidth = panelRect.rect.width;
         float panelHeight = panelRect.rect.height;
 
@@ -252,7 +284,6 @@ public class LocationSelector : MonoBehaviour
         float canvasBottom = canvasRect.rect.yMin;
         float canvasTop = canvasRect.rect.yMax;
 
-        // 기본적으로 지역 오른쪽에 패널 배치
         float availableRight = canvasRight - localPoint.x;
         float availableLeft = localPoint.x - canvasLeft;
 
@@ -268,19 +299,16 @@ public class LocationSelector : MonoBehaviour
         }
         else
         {
-            // 양쪽 모두 공간이 부족하면 더 넓은 쪽 선택
             direction =
                 availableRight >= availableLeft ? 1f : -1f;
         }
 
-        // 선택한 지역 옆에 패널 배치
         float panelX =
             localPoint.x +
             direction * (panelWidth / 2f + panelOffset);
 
         float panelY = localPoint.y;
 
-        // 패널이 화면 밖으로 나가지 않도록 제한
         float minX = canvasLeft + panelWidth / 2f;
         float maxX = canvasRight - panelWidth / 2f;
 
@@ -300,27 +328,106 @@ public class LocationSelector : MonoBehaviour
         panelRect.anchoredPosition =
             new Vector2(panelX, panelY);
     }
+
     public void EnterSelectedLocation()
     {
-        // 선택한 지역이 없으면 실행하지 않음
         if (selectedLocation == null)
         {
             Debug.LogWarning("먼저 진입할 지역을 선택하세요.");
             return;
         }
 
-        // 선택한 지역의 데이터 가져오기
+        if (placeInteriorPanel == null)
+        {
+            Debug.LogWarning(
+                "PlaceInteriorPanel이 연결되지 않았습니다."
+            );
+            return;
+        }
+
         LocationData data =
             selectedLocation.GetComponent<LocationData>();
 
         if (data == null)
         {
-            Debug.LogWarning("선택한 지역에 LocationData가 없습니다.");
+            Debug.LogWarning(
+                "선택한 지역에 LocationData가 없습니다."
+            );
             return;
         }
 
-        // 진입 결과 출력
+        // 장소 이름 표시
+        if (placeNameText != null)
+        {
+            placeNameText.text = data.locationName;
+        }
+
+        // 장소 설명 표시
+        if (placeDescriptionText != null)
+        {
+            placeDescriptionText.text = data.description;
+        }
+
+        // 지도 정보 패널 숨기기
+        if (locationInfoPanel != null)
+        {
+            locationInfoPanel.SetActive(false);
+        }
+
+        // 장소 내부 화면 표시
+        placeInteriorPanel.SetActive(true);
+
         Debug.Log(data.locationName + "에 진입했습니다.");
     }
 
+    public void ExitPlace()
+    {
+        // 장소 내부 화면 숨기기
+        if (placeInteriorPanel != null)
+        {
+            placeInteriorPanel.SetActive(false);
+        }
+
+        // 지도 정보 패널 다시 표시
+        if (locationInfoPanel != null &&
+            selectedLocation != null)
+        {
+            locationInfoPanel.SetActive(true);
+        }
+
+        Debug.Log("지도 화면으로 돌아왔습니다.");
+    }
+
+    // 지도 정보 패널 닫기 및 카메라 초기화
+    public void CloseLocationInfo()
+    {
+        // 선택한 장소의 색상 복원
+        if (selectedLocation != null)
+        {
+            SpriteRenderer renderer =
+                selectedLocation.GetComponent<SpriteRenderer>();
+
+            if (renderer != null &&
+                originalColors.ContainsKey(selectedLocation))
+            {
+                renderer.color =
+                    originalColors[selectedLocation];
+            }
+        }
+
+        // 선택 상태 해제
+        selectedLocation = null;
+
+        // 정보 패널 닫기
+        if (locationInfoPanel != null)
+        {
+            locationInfoPanel.SetActive(false);
+        }
+
+        // 카메라 초기 위치와 확대값으로 복귀
+        targetCameraPosition = initialCameraPosition;
+        targetCameraSize = initialCameraSize;
+
+        Debug.Log("전체 지도 화면으로 돌아갑니다.");
+    }
 }
