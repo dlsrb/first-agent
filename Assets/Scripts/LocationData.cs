@@ -30,5 +30,16 @@ public class LocationData : MonoBehaviour
     [TextArea(2, 5)]
     public string suspiciousPersonResult = "수상한 인물을 조사했다.";
 
+    [Header("점원 대화 선택지")]
+
+    public string choiceAText = "A. 요즘 이상한 일 없었어요?";
+
+    [TextArea(2, 5)]
+    public string choiceAResult = "점원은 잠시 머뭇거리다 고개를 저었다.";
+
+    public string choiceBText = "B. 그냥 둘러볼게요.";
+
+    [TextArea(2, 5)]
+    public string choiceBResult = "점원은 고개를 끄덕이고 하던 일을 계속했다.";
 
 }
