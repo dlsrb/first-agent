@@ -21,6 +21,9 @@ public class LocationSelector : MonoBehaviour
     public TMP_Text placeNameText;
     public TMP_Text placeDescriptionText;
 
+    [Header("상호작용 시스템")]
+    public InteractionController interactionController;
+
     [Header("카메라 설정")]
     public float zoomedCameraSize = 2.5f;
     public float cameraMoveSpeed = 5f;
@@ -354,6 +357,16 @@ public class LocationSelector : MonoBehaviour
                 "선택한 지역에 LocationData가 없습니다."
             );
             return;
+        }
+
+        // 현재 장소 데이터를 상호작용 시스템에 전달
+        if (interactionController != null)
+        {
+            interactionController.SetLocationData(data);
+        }
+        else
+        {
+            Debug.LogWarning("InteractionController가 연결되지 않았습니다.");
         }
 
         // 장소 이름 표시
