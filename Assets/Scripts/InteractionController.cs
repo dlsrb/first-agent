@@ -63,11 +63,20 @@ public class InteractionController : MonoBehaviour
             return;
         }
 
-        // [9일차 변경] 결과 텍스트 대신 대화창에 이름과 대사 표시
-        OpenDialogue();
+        // [10일차 변경] 이미 선택지를 골랐으면 재방문 대사만 표시
+        if (currentLocationData.hasChosenClerkChoice)
+        {
+            OpenDialogue(currentLocationData.clerkRepeatDialogue);
+            HideChoices();
+        }
+        else
+        {
+            // [9일차 변경] 결과 텍스트 대신 대화창에 이름과 대사 표시
+            OpenDialogue(currentLocationData.clerkResult);
 
-        // [8일차 추가] 점원 대사 후 선택지 보여주기
-        ShowChoices();
+            // [8일차 추가] 점원 대사 후 선택지 보여주기
+            ShowChoices();
+        }
     }
 
     // 수상한 사람 조사
@@ -94,11 +103,15 @@ public class InteractionController : MonoBehaviour
             return;
         }
 
+        // [10일차 추가] 이 장소에서 선택했다는 상태 기록
+        currentLocationData.hasChosenClerkChoice = true;
+
         // [9일차 변경] 대화창을 닫고 결과는 결과 텍스트에 표시
         CloseDialogue();
         DisplayResult(currentLocationData.choiceAResult);
     }
 
+    // [8일차 추가] 선택지 B 선택
     // [8일차 추가] 선택지 B 선택
     public void ChooseB()
     {
@@ -108,13 +121,17 @@ public class InteractionController : MonoBehaviour
             return;
         }
 
+        // [10일차 추가] 이 장소에서 선택했다는 상태 기록
+        currentLocationData.hasChosenClerkChoice = true;
+
         // [9일차 변경] 대화창을 닫고 결과는 결과 텍스트에 표시
         CloseDialogue();
         DisplayResult(currentLocationData.choiceBResult);
     }
 
     // [9일차 추가] 대화창 열기
-    private void OpenDialogue()
+    // [10일차 변경] 보여줄 대사를 받아서 표시
+    private void OpenDialogue(string dialogue)
     {
         if (dialoguePanel == null)
         {
@@ -129,7 +146,7 @@ public class InteractionController : MonoBehaviour
 
         if (dialogueText != null)
         {
-            dialogueText.text = currentLocationData.clerkResult;
+            dialogueText.text = dialogue;
         }
 
         dialoguePanel.SetActive(true);

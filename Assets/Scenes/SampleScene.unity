@@ -690,6 +690,8 @@ MonoBehaviour:
   choiceBText: "B. \uC9C0\uAE08 \uB2F9\uC7A5 \uB098\uAC00\uC138\uC694!"
   choiceBResult: "\uC810\uC6D0\uC740 \uD5C8\uAC81\uC9C0\uAC81 \uCD9C\uAD6C\uB85C
     \uB6F0\uC5B4\uB098\uAC14\uB2E4."
+  clerkRepeatDialogue: "\uC810\uC6D0\uC740 \uCC3D\uACE0 \uCABD\uC744 \uBC14\uB77C\uBCF4\uBA70
+    \uB5A8\uACE0 \uC788\uB2E4."
 --- !u!1 &472482077
 GameObject:
   m_ObjectHideFlags: 0
@@ -2750,6 +2752,8 @@ MonoBehaviour:
     \uC694\uC6D0\uB2D8\uB4E4 \uC804\uC6A9\uC774\uC5D0\uC694.\""
   choiceBText: "B. \uBCF4\uAE09\uD488\uC744 \uD655\uC778\uD560\uAC8C\uC694."
   choiceBResult: "\uC810\uC6D0\uC774 \uBCF4\uAE09\uD488 \uBAA9\uB85D\uC744 \uAC74\uB124\uC8FC\uC5C8\uB2E4."
+  clerkRepeatDialogue: "\"\uD734\uAC8C\uC2E4\uC740 \uC5B8\uC81C\uB4E0 \uC4F0\uC154\uB3C4
+    \uB3FC\uC694, \uC694\uC6D0\uB2D8.\""
 --- !u!1 &1489332000
 GameObject:
   m_ObjectHideFlags: 0
@@ -3463,6 +3467,8 @@ MonoBehaviour:
   choiceBText: "B. ...\uC544\uBB34 \uB9D0\uB3C4 \uD558\uC9C0 \uC54A\uB294\uB2E4."
   choiceBResult: "\uC810\uC6D0\uC740 \uACE0\uAC1C\uB97C \uAE30\uC6B8\uC778 \uCC44
     \uB2F9\uC2E0\uC744 \uB05D\uAE4C\uC9C0 \uBC14\uB77C\uBCF4\uC558\uB2E4."
+  clerkRepeatDialogue: "\"\uC800\uB294 \uCC98\uC74C\uBD80\uD130 \uC5EC\uAE30 \uC788\uC5C8\uB294\uB370\uC694?\"
+    \uC544\uAE4C\uC640 \uB611\uAC19\uC740 \uBAA9\uC18C\uB9AC\uB2E4."
 --- !u!1 &1680864901
 GameObject:
   m_ObjectHideFlags: 0
@@ -4869,6 +4875,8 @@ MonoBehaviour:
   choiceBText: "B. \uADF8\uB0E5 \uB458\uB7EC\uBCFC\uAC8C\uC694."
   choiceBResult: "\uC810\uC6D0\uC740 \uACE0\uAC1C\uB97C \uB044\uB355\uC774\uACE0
     \uACC4\uC0B0\uB300 \uC815\uB9AC\uB97C \uACC4\uC18D\uD588\uB2E4."
+  clerkRepeatDialogue: "\"\uB610 \uC624\uC168\uB124\uC694. \uD544\uC694\uD55C \uAC8C
+    \uC788\uC73C\uBA74 \uB9D0\uC500\uD558\uC138\uC694.\""
 --- !u!1 &2124117453
 GameObject:
   m_ObjectHideFlags: 0

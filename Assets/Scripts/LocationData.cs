@@ -45,4 +45,13 @@ public class LocationData : MonoBehaviour
     [TextArea(2, 5)]
     public string choiceBResult = "점원은 고개를 끄덕이고 하던 일을 계속했다.";
 
+    // [10일차 추가] 이미 선택지를 고른 뒤 다시 말을 걸었을 때의 대사
+    [TextArea(2, 5)]
+    public string clerkRepeatDialogue = "\"또 오셨네요. 필요한 게 있으면 말씀하세요.\"";
+
+    // [10일차 추가] 상태: 이 장소에서 점원 선택지를 이미 골랐는지
+    // Inspector에 표시되지 않고, Play를 다시 시작하면 false로 돌아간다
+    [System.NonSerialized]
+    public bool hasChosenClerkChoice = false;
+
 }
