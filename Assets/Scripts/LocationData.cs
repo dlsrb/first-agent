@@ -32,6 +32,9 @@ public class LocationData : MonoBehaviour
 
     [Header("점원 대화 선택지")]
 
+    // [9일차 추가] 대화창에 표시할 NPC 이름
+    public string npcName = "점원";
+
     public string choiceAText = "A. 요즘 이상한 일 없었어요?";
 
     [TextArea(2, 5)]

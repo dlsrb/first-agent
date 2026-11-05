@@ -12,6 +12,12 @@ public class InteractionController : MonoBehaviour
     public TMP_Text choiceAButtonText;
     public TMP_Text choiceBButtonText;
 
+    // [9일차 추가] 대화창 UI
+    [Header("대화창 UI")]
+    public GameObject dialoguePanel;
+    public TMP_Text npcNameText;
+    public TMP_Text dialogueText;
+
     // 현재 장소 데이터
     private LocationData currentLocationData;
 
@@ -28,6 +34,9 @@ public class InteractionController : MonoBehaviour
 
         // [8일차 추가] 새로운 장소에 들어가면 이전 선택지 숨기기
         HideChoices();
+
+        // [9일차 추가] 새로운 장소에 들어가면 대화창 닫기
+        CloseDialogue();
     }
 
     // 진열대 조사
@@ -54,7 +63,8 @@ public class InteractionController : MonoBehaviour
             return;
         }
 
-        DisplayResult(currentLocationData.clerkResult);
+        // [9일차 변경] 결과 텍스트 대신 대화창에 이름과 대사 표시
+        OpenDialogue();
 
         // [8일차 추가] 점원 대사 후 선택지 보여주기
         ShowChoices();
@@ -84,8 +94,9 @@ public class InteractionController : MonoBehaviour
             return;
         }
 
+        // [9일차 변경] 대화창을 닫고 결과는 결과 텍스트에 표시
+        CloseDialogue();
         DisplayResult(currentLocationData.choiceAResult);
-        HideChoices();
     }
 
     // [8일차 추가] 선택지 B 선택
@@ -97,8 +108,42 @@ public class InteractionController : MonoBehaviour
             return;
         }
 
+        // [9일차 변경] 대화창을 닫고 결과는 결과 텍스트에 표시
+        CloseDialogue();
         DisplayResult(currentLocationData.choiceBResult);
+    }
+
+    // [9일차 추가] 대화창 열기
+    private void OpenDialogue()
+    {
+        if (dialoguePanel == null)
+        {
+            Debug.LogWarning("DialoguePanel이 연결되지 않았습니다.");
+            return;
+        }
+
+        if (npcNameText != null)
+        {
+            npcNameText.text = currentLocationData.npcName;
+        }
+
+        if (dialogueText != null)
+        {
+            dialogueText.text = currentLocationData.clerkResult;
+        }
+
+        dialoguePanel.SetActive(true);
+    }
+
+    // [9일차 추가] 대화창 닫기 (닫기 버튼에 연결)
+    public void CloseDialogue()
+    {
         HideChoices();
+
+        if (dialoguePanel != null)
+        {
+            dialoguePanel.SetActive(false);
+        }
     }
 
     // [8일차 추가] 선택지 보여주기
