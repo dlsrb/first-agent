@@ -217,7 +217,7 @@ public static class BattleSimulator
             {
                 var e = Fight(s, db, p, PickWeighted(pool, rng), o, rng);
 
-                if (o.useSkills && !energyMarked && p.currentEnergy < minCost)
+                if (o.useSkills && minCost != int.MaxValue && !energyMarked && p.currentEnergy < minCost)
                 {
                     result.energyEmptyBattleSum += b;
                     result.energyEmptyRuns++;
@@ -260,11 +260,11 @@ public static class BattleSimulator
     public static string RunReport(BattleSettings s, GameDatabase db, RegionData region, int n, int seed)
     {
         var sb = new StringBuilder();
-        var basePlayer = PlayerState.CreateFrom(s.playerBase);
-        var pb = s.playerBase;
+        var basePlayer = NewPlayer(s, db);
+        var pb = basePlayer;
 
-        sb.AppendLine("주인공 시작 수치: 체력 " + pb.maxHp + ", 기력 " + pb.maxEnergy + ", 공격 " + pb.attack + ", 방어 " + pb.defense +
-                      ", 치명 " + Pct(pb.critChance) + ", 주사위 " + pb.diceCount + "개×" + pb.diceFaces + "면 / 전투마다 " + n + "회, 시드 " + seed);
+        sb.AppendLine("주인공 시작 수치(시작 장비 포함): 체력 " + pb.maxHp + ", 기력 " + pb.maxEnergy + ", 공격 " + pb.attack + ", 방어 " + pb.defense +
+                      ", 치명 " + Pct(pb.critChance) + ", 주사위 " + pb.diceCount + "개×" + pb.diceFaces + "면, 스킬 " + pb.skillIds.Count + "개 / 전투마다 " + n + "회, 시드 " + seed);
         sb.AppendLine();
         sb.AppendLine("### 괴이별 (매 전투 체력·기력 가득)");
         sb.AppendLine();
@@ -295,14 +295,14 @@ public static class BattleSimulator
         sb.AppendLine("| 괴이 | 체력/공격/방어 | 플레이 | 승률 | 평균 턴(승리) | 받은 피해 | 조합 발동 | 조합 피해 비중 | 기력 사용 |");
         sb.AppendLine("|---|---|---|---|---|---|---|---|---|");
 
-        var geared = basePlayer.Clone();
-        geared.attack += 5;
-        geared.defense += 10;
+        // [C-1] 적정 장비 = 실제 고급 무기 + 고급 방어구 데이터
+        var geared = WithGear(basePlayer, s, db, ItemGrade.Advanced, ItemGrade.Advanced);
+        string gearLabel = "적정 장비(공격 " + geared.attack + "·방어 " + geared.defense + "·스킬 " + geared.skillIds.Count + ")";
 
         foreach (var m in bosses)
         {
             Row(sb, s, db, basePlayer, m, new Options { policy = Policy.Smart, useSkills = true, allowFood = true }, "시작 장비, 스킬·음식", n, seed);
-            Row(sb, s, db, geared, m, new Options { policy = Policy.Smart, useSkills = true, allowFood = true }, "적정 장비(+5/+10), 스킬·음식", n, seed);
+            Row(sb, s, db, geared, m, new Options { policy = Policy.Smart, useSkills = true, allowFood = true }, gearLabel + ", 스킬·음식", n, seed);
             Row(sb, s, db, geared, m, new Options { policy = Policy.SmartTaunt, useSkills = true, allowFood = true }, "적정 장비, 첫 턴 도발", n, seed);
             Row(sb, s, db, geared, m, new Options { policy = Policy.SmartTauntPhase1, useSkills = true, allowFood = true }, "적정 장비, 1페이즈 도발 사용", n, seed);
             Row(sb, s, db, geared, m, new Options { policy = Policy.SmartTauntKeep, useSkills = true, allowFood = true }, "적정 장비, 도발 계속 유지", n, seed);
@@ -332,6 +332,29 @@ public static class BattleSimulator
         }
 
         return sb.ToString();
+    }
+
+    // 새 게임 주인공 (시작 장비 포함 계산)
+    public static PlayerState NewPlayer(BattleSettings s, GameDatabase db)
+    {
+        var p = PlayerState.CreateFrom(s.playerBase);
+        PlayerStats.Recalculate(p, s, db);
+        return p;
+    }
+
+    // 지정 등급의 무기·방어구(데이터베이스에서 처음 찾은 것)를 장착한 복사본
+    public static PlayerState WithGear(PlayerState template, BattleSettings s, GameDatabase db, ItemGrade weaponGrade, ItemGrade armorGrade)
+    {
+        var p = template.Clone();
+        var weapon = db.items.Find(i => i != null && i.type == ItemType.Weapon && i.grade == weaponGrade);
+        var armor = db.items.Find(i => i != null && i.type == ItemType.Armor && i.grade == armorGrade);
+
+        if (weapon != null) PlayerStats.Equip(p, p.AddEquipment(weapon.itemId), s, db);
+        if (armor != null) PlayerStats.Equip(p, p.AddEquipment(armor.itemId), s, db);
+
+        p.currentHp = p.maxHp;
+        p.currentEnergy = p.maxEnergy;
+        return p;
     }
 
     static void Row(StringBuilder sb, BattleSettings s, GameDatabase db, PlayerState player, MonsterData m, Options o, string label, int n, int seed)

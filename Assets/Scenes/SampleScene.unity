@@ -3683,7 +3683,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -170}
+  m_AnchoredPosition: {x: 0, y: -215}
   m_SizeDelta: {x: 320, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &554573568
@@ -4897,7 +4897,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 140}
+  m_AnchoredPosition: {x: 0, y: 205}
   m_SizeDelta: {x: 820, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &696018031
@@ -7123,8 +7123,9 @@ MonoBehaviour:
     player:
       initialized: 0
       currentHp: 0
-      maxHp: 0
       currentEnergy: 0
+      gold: 0
+      maxHp: 0
       maxEnergy: 0
       attack: 0
       defense: 0
@@ -7132,13 +7133,16 @@ MonoBehaviour:
       agility: 0
       diceCount: 0
       diceFaces: 0
-      gold: 0
+      skillIds: []
+      level: 1
+      exp: 0
       respawnAreaId: 
       respawnPlaceId: 
-      weaponId: 
-      armorId: 
-      skillIds: []
       items: []
+      equipment: []
+      nextEquipUid: 1
+      equippedWeaponUid: 0
+      equippedArmorUid: 0
 --- !u!4 &1050407718
 Transform:
   m_ObjectHideFlags: 0
@@ -8305,7 +8309,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 900, y: 480}
+  m_SizeDelta: {x: 900, y: 580}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1261305613
 MonoBehaviour:
@@ -9006,8 +9010,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 32
-  m_fontSizeBase: 32
+  m_fontSize: 30
+  m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -9075,8 +9079,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -5}
-  m_SizeDelta: {x: 820, y: 170}
+  m_AnchoredPosition: {x: 0, y: 15}
+  m_SizeDelta: {x: 820, y: 250}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1489332000
 GameObject:
@@ -10646,6 +10650,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   settings: {fileID: 11400000, guid: 34666ac25a1c5cc4ba941c17c78658c3, type: 2}
   database: {fileID: 11400000, guid: 6d4ef8efadf614e48970e9806ab95607, type: 2}
+  economy: {fileID: 11400000, guid: 1212a96aaa9c6b8459f7bedf31e8528c, type: 2}
   monsterNameText: {fileID: 1300688858}
   monsterStatsText: {fileID: 1855828767}
   monsterImage: {fileID: 78796328}

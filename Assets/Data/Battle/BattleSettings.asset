@@ -38,20 +38,19 @@ MonoBehaviour:
   reviveHpRatio: 0.3
   defaultRespawnArea: {fileID: 11400000, guid: 5202d42ba449be748ba288b9c364756e, type: 2}
   defaultRespawnPlace: {fileID: 11400000, guid: 2a550e478cc502f4ba9115c112279972, type: 2}
-  retryRewardRatio: 0.2
   battleCooldownSeconds: 0
   playerBase:
     maxHp: 100
     maxEnergy: 10
-    attack: 5
-    defense: 10
+    attack: 3
+    defense: 6
     critChance: 0.05
     agility: 0
     diceCount: 2
     diceFaces: 6
-    startSkills:
-    - {fileID: 11400000, guid: ea16cb0229b62574097749fe78e1b719, type: 2}
-    - {fileID: 11400000, guid: af8ec4f6e1dd955499fa68303de3a96e, type: 2}
+    startSkills: []
+    startWeapon: {fileID: 11400000, guid: 3d5f6830d375d3748a6eb88816ca2c73, type: 2}
+    startArmor: {fileID: 11400000, guid: c4838cbeda2ac084e8092d009140501d, type: 2}
     startItems:
     - item: {fileID: 11400000, guid: 8f601829246d21f4a8e4f7d4cbaa7b68, type: 2}
       count: 3

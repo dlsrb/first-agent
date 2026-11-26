@@ -17,6 +17,14 @@ MonoBehaviour:
   - {fileID: 11400000, guid: af8ec4f6e1dd955499fa68303de3a96e, type: 2}
   items:
   - {fileID: 11400000, guid: 8f601829246d21f4a8e4f7d4cbaa7b68, type: 2}
+  - {fileID: 11400000, guid: 3d5f6830d375d3748a6eb88816ca2c73, type: 2}
+  - {fileID: 11400000, guid: 7e6b99cbff1f6fd41a3505dd640c2566, type: 2}
+  - {fileID: 11400000, guid: b3851c7aad8ca4f48ba3061d2a83da25, type: 2}
+  - {fileID: 11400000, guid: c4838cbeda2ac084e8092d009140501d, type: 2}
+  - {fileID: 11400000, guid: 185e81a39841c4d4ab047bee47a34bc9, type: 2}
+  - {fileID: 11400000, guid: 203a7bdb597e63240a1fb9e8b0b46e7a, type: 2}
+  - {fileID: 11400000, guid: 8cdfd0fd112594742ab3a53498f5ace0, type: 2}
+  - {fileID: 11400000, guid: aea4dc3e72b098543904ea5fc4525cc0, type: 2}
   monsters:
   - {fileID: 11400000, guid: b67bc8763e398a0459247122ed8ba2e3, type: 2}
   - {fileID: 11400000, guid: 4ba381ec70a0a824ba24d0000e0d433b, type: 2}

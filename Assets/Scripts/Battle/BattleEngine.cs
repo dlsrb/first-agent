@@ -100,9 +100,10 @@ public class BattleEngine
 
     public int MonsterDefense => Math.Max(0, Round(monster.defense * phaseDefenseMultiplier * (1f + SumDefensePercent(monsterEffects) / 100f)));
 
-    public int PlayerAttackStat => player.attack + EquipAttack();
+    // [C-1] 장비·강화는 PlayerStats.Recalculate가 player.attack·defense에 이미 더해 둔다
+    public int PlayerAttackStat => player.attack;
 
-    public int PlayerDefenseStat => Math.Max(0, Round((player.defense + EquipDefense()) * (1f + SumDefensePercent(playerEffects) / 100f)));
+    public int PlayerDefenseStat => Math.Max(0, Round(player.defense * (1f + SumDefensePercent(playerEffects) / 100f)));
 
     // 사기 저하 등: 주인공 공격 피해 전체에 적용 (설계안 임시 9번)
     float PlayerDamageFactor => Math.Max(0f, 1f + SumAttackPercent(playerEffects) / 100f);
@@ -831,18 +832,6 @@ public class BattleEngine
     }
 
     // ---------- 도우미 ----------
-
-    int EquipAttack()
-    {
-        var w = database != null ? database.FindItem(player.weaponId) : null;
-        return w != null ? w.attackBonus : 0;
-    }
-
-    int EquipDefense()
-    {
-        var a = database != null ? database.FindItem(player.armorId) : null;
-        return a != null ? a.defenseBonus : 0;
-    }
 
     static float SumAttackPercent(List<ActiveEffect> effects)
     {

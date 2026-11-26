@@ -125,7 +125,7 @@ public static class IntegrationTestRunner
                         bool boss = story && p.battle.fixedMonster != null && p.battle.fixedMonster.IsBoss;
                         Add("prepBattle", boss ? "boss" : "", "");
                         Add("click", ENTER, story ? "comic" : "battle,!interior,monsterOk:" + p.locationId + ":" + area.areaId);
-                        Add("battleFull", p.locationId, "won,!battle,map=" + area.areaId + ",!info,!interior" +
+                        Add("battleFull", p.locationId, "won,!battle,map=" + area.areaId + ",!info,!interior,rewarded:" + (story ? "StoryFirst" : "Normal") +
                             (story ? ",introComicFirst,cleared:" + p.locationId : "") +
                             (boss ? ",phaseComics=" + p.battle.fixedMonster.phases.Count + ",bossFlag:" + p.battle.fixedMonster.monsterId : ""));
                     }
@@ -244,8 +244,9 @@ public static class IntegrationTestRunner
 
     static string botMode = "";          // "" = 이기기, "lose" = 지기, "flee" = 도망
     static string botWant;               // 특수 행동 창에서 누를 항목
-    static int botTicks, botComics, botComicsBeforeTurn1, botTaunts, botCounters;
+    static int botTicks, botComics, botComicsBeforeTurn1, botTaunts, botCounters, botFoods;
     static string botResult;             // 결과 창 제목
+    static string botDetail;
     static bool botComicWasOpen;
     static bool comicCallback;
 
@@ -274,6 +275,7 @@ public static class IntegrationTestRunner
         if (Active("BattlePanel/ResultPopup"))
         {
             botResult = canvas.Find("BattlePanel/ResultPopup/ResultBox/ResultTitleText").GetComponent<TMP_Text>().text;
+            botDetail = canvas.Find("BattlePanel/ResultPopup/ResultBox/ResultDetailText").GetComponent<TMP_Text>().text;
             ClickPath("Canvas/BattlePanel/ResultPopup/ResultBox/ResultOkButton");
             return true;
         }
@@ -331,6 +333,12 @@ public static class IntegrationTestRunner
         {
             botWant = DisplayNames.Special(SpecialAction.Taunt);
             botTaunts++;
+        }
+        else if (e.player.currentHp <= e.player.maxHp * 0.35f && e.CanSpecial(SpecialAction.EatFood))
+        {
+            // [C-1] 체력 35% 이하면 음식 (시뮬레이터와 같은 기준)
+            botWant = DisplayNames.Special(SpecialAction.EatFood);
+            botFoods++;
         }
         else if (intent != null && intent.kind == MonsterActionKind.Reflect)
         {
@@ -394,8 +402,9 @@ public static class IntegrationTestRunner
         {
             if (!acted)
             {
-                botTicks = botComics = botComicsBeforeTurn1 = botTaunts = botCounters = 0;
+                botTicks = botComics = botComicsBeforeTurn1 = botTaunts = botCounters = botFoods = 0;
                 botResult = null;
+                botDetail = null;
                 botComicWasOpen = false;
                 acted = true;
                 botRunning = true;
@@ -432,7 +441,8 @@ public static class IntegrationTestRunner
         {
             // 전투 기록 (통과해도 남김)
             log.Append("  [전투 " + s.target + "] 결과=" + botResult + " 틱=" + botTicks + " 만화=" + botComics + "(전투 전 " + botComicsBeforeTurn1 +
-                       ") 도발=" + botTaunts + " 대응=" + botCounters + "\n");
+                       ") 도발=" + botTaunts + " 대응=" + botCounters + " 음식=" + botFoods +
+                       " 보상=" + (battle.LastReward != null ? battle.LastReward.gold + "G" : "-") + "\n");
         }
 
         index++;
@@ -461,17 +471,24 @@ public static class IntegrationTestRunner
             }
             else if (s.kind == "prepBattle")
             {
-                // 테스트 지름길: 병원(C단계)이 없으므로 전투 전 체력·기력을 채움. 보스는 적정 장비(+5/+10) 가정
-                var p = GameStateManager.Instance.EnsurePlayer(battle.settings);
-                p.currentHp = p.maxHp;
-                p.currentEnergy = p.maxEnergy;
+                // 테스트 지름길: 병원 화면(C-2) 전이라 전투 전 체력·기력을 채움. 보스는 적정 장비(실제 고급 무기·방어구 데이터) 장착
+                var p = GameStateManager.Instance.EnsurePlayer(battle.settings, battle.database);
                 botMode = s.target == "boss" ? "" : s.target;
 
-                if (s.target == "boss" && p.attack == battle.settings.playerBase.attack)
+                if (s.target == "boss")
                 {
-                    p.attack += 5;
-                    p.defense += 10;
+                    // 적정 장비(고급 무기·방어구) + 3강 + 음식 3개. 3강은 C-4 성장(약 1시간: 레벨·숙련도) 대신 (시뮬레이션 승률 100%)
+                    var geared = BattleSimulator.WithGear(p, battle.settings, battle.database, ItemGrade.Advanced, ItemGrade.Advanced);
+                    geared.FindEquipment(geared.equippedWeaponUid).enhance = 3;
+                    geared.FindEquipment(geared.equippedArmorUid).enhance = 3;
+                    PlayerStats.Recalculate(geared, battle.settings, battle.database);
+                    if (geared.CountOf("food") < 3) geared.AddItem("food", 3 - geared.CountOf("food"));
+                    GameStateManager.Instance.State.player = geared;
+                    p = geared;
                 }
+
+                p.currentHp = p.maxHp;
+                p.currentEnergy = p.maxEnergy;
 
                 if (s.target == "lose")
                 {
@@ -598,6 +615,13 @@ public static class IntegrationTestRunner
                     v = n == int.Parse(val);
                 }
                 else if (e == "won") v = botResult != null && botResult.StartsWith("승리");
+                // [C-1] 승리 보상: 종류가 맞고, 골드가 들어왔고, 결과 창에 표시됨
+                else if (e.StartsWith("rewarded:"))
+                {
+                    var r = battle.LastReward;
+                    v = r != null && r.kind.ToString() == e.Substring(9) && r.gold > 0 && r.exp > 0 &&
+                        botDetail != null && botDetail.Contains("골드 +" + r.gold) && g.State.player.gold >= r.gold;
+                }
                 else if (e == "lost") v = botResult != null && botResult.StartsWith("패배");
                 else if (e == "fled") v = botResult != null && botResult.StartsWith("도망");
                 else if (e == "introComicFirst") v = botComicsBeforeTurn1 >= 1;

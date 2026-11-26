@@ -46,26 +46,30 @@ public class BattleSettings : ScriptableObject
     public AreaData defaultRespawnArea;
     public PlaceData defaultRespawnPlace;
 
-    [Header("C단계·온라인용 칸 (지금 사용 안 함)")]
-    [Range(0, 1)] public float retryRewardRatio = 0.2f;
+    [Header("온라인용 칸 (지금 사용 안 함). 재도전 보상 배율은 EconomySettings")]
     public float battleCooldownSeconds = 0f;
 
     [Header("주인공 시작 수치")]
     public PlayerBase playerBase = new PlayerBase();
 }
 
+// 장비·스탯을 빼고 남는 주인공 기본 수치 (C-1: 시작 장비 일반 무기 +2·일반 방어구 +4를 더하면 B단계 시작값 공격 5·방어 10)
 [System.Serializable]
 public class PlayerBase
 {
     public int maxHp = 100;
     public int maxEnergy = 10;
-    public int attack = 5;
-    public int defense = 10;
+    public int attack = 3;
+    public int defense = 6;
     [Range(0, 1)] public float critChance = 0.05f;
     public int agility = 0;
     public int diceCount = 2;
     public int diceFaces = 6;
+    [UnityEngine.Tooltip("C-1부터 스킬은 무기에서만 얻는다. 시작 스킬은 비워 둔다 (테스트용 칸)")]
     public List<SkillData> startSkills = new List<SkillData>();
+    [UnityEngine.Tooltip("시작 장비 (장착 상태로 지급)")]
+    public ItemData startWeapon;
+    public ItemData startArmor;
     public List<StartItem> startItems = new List<StartItem>();
 }
 

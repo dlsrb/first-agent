@@ -51,6 +51,7 @@ public static class BattleUIBuilder
         var bc = panel.gameObject.AddComponent<BattleController>();
         bc.settings = AssetDatabase.LoadAssetAtPath<BattleSettings>("Assets/Data/Battle/BattleSettings.asset");
         bc.database = AssetDatabase.LoadAssetAtPath<GameDatabase>("Assets/Data/Battle/GameDatabase.asset");
+        bc.economy = AssetDatabase.LoadAssetAtPath<EconomySettings>("Assets/Data/Economy/EconomySettings.asset");
 
         var top = new Vector2(0.5f, 1f);
         var mid = new Vector2(0.5f, 0.5f);
@@ -176,11 +177,11 @@ public static class BattleUIBuilder
         // ---- 결과 창 ----
         var result = Rect("ResultPopup", panel, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         AddImage(result, new Color(0f, 0f, 0f, 0.5f), null);
-        var box = Rect("ResultBox", result, mid, mid, Vector2.zero, new Vector2(900, 480));
+        var box = Rect("ResultBox", result, mid, mid, Vector2.zero, new Vector2(900, 580));
         AddImage(box, White, uiSprite).type = Image.Type.Sliced;
-        bc.resultTitleText = Text("ResultTitleText", box, "승리!", 70, Dark, TextAlignmentOptions.Center, mid, new Vector2(0, 140), new Vector2(820, 100));
-        bc.resultDetailText = Text("ResultDetailText", box, "", 32, Dark, TextAlignmentOptions.Center, mid, new Vector2(0, -5), new Vector2(820, 170));
-        Button("ResultOkButton", box, "확인", 40, mid, new Vector2(0, -170), new Vector2(320, 100), bc.OnResultOk);
+        bc.resultTitleText = Text("ResultTitleText", box, "승리!", 70, Dark, TextAlignmentOptions.Center, mid, new Vector2(0, 205), new Vector2(820, 100));
+        bc.resultDetailText = Text("ResultDetailText", box, "", 30, Dark, TextAlignmentOptions.Center, mid, new Vector2(0, 15), new Vector2(820, 250));
+        Button("ResultOkButton", box, "확인", 40, mid, new Vector2(0, -215), new Vector2(320, 100), bc.OnResultOk);
         result.gameObject.SetActive(false);
         bc.resultPopup = result.gameObject;
 

@@ -17,7 +17,15 @@ MonoBehaviour:
   description: "[\uCCB4\uB825 30 \uD68C\uBCF5]"
   icon: {fileID: 0}
   type: 0
+  grade: 0
+  price: 30
+  sellPriceOverride: 0
   healHp: 30
   healEnergy: 0
+  weaponType: 0
   attackBonus: 0
+  critBonus: 0
+  skills: []
+  attackPerEnhance: 1
   defenseBonus: 0
+  defensePerEnhance: 2

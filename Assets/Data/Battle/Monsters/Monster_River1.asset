@@ -21,6 +21,9 @@ MonoBehaviour:
   maxHp: 36
   attack: 10
   defense: 5
+  goldMin: 35
+  goldMax: 50
+  exp: 10
   firstStrike: 0
   canFlee: 1
   actions:

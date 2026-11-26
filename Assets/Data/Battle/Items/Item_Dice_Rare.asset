@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bc04db92f356244182affe2558a2dc0, type: 3}
+  m_Name: Item_Dice_Rare
+  m_EditorClassIdentifier: 
+  itemId: dice_rare
+  itemName: "[\uD76C\uADC0 \uC8FC\uC0AC\uC704 \uBBF8\uC815]"
+  description: "[\uC544\uC774\uD15C \uC124\uBA85 \uBBF8\uC815]"
+  icon: {fileID: 0}
+  type: 1
+  grade: 2
+  price: 2000
+  sellPriceOverride: 0
+  healHp: 0
+  healEnergy: 0
+  weaponType: 0
+  attackBonus: 10
+  critBonus: 0.03
+  skills:
+  - {fileID: 11400000, guid: ea16cb0229b62574097749fe78e1b719, type: 2}
+  - {fileID: 11400000, guid: af8ec4f6e1dd955499fa68303de3a96e, type: 2}
+  attackPerEnhance: 1
+  defenseBonus: 0
+  defensePerEnhance: 2

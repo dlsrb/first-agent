@@ -107,6 +107,11 @@ public class MonsterData : ScriptableObject
     public int attack = 14;
     public int defense = 10;
 
+    [Header("보상 (C-1, 스토리·보스는 첫 클리어 기준. 재도전은 EconomySettings 배율)")]
+    public int goldMin = 35;
+    public int goldMax = 50;
+    public int exp = 10;
+
     [Header("전투 규칙")]
     [Tooltip("먼저 행동하는 괴이 (첫 행동은 예고 없이 실행)")]
     public bool firstStrike = false;

@@ -60,14 +60,15 @@ public class GameStateManager : MonoBehaviour
 
     // ---- 주인공 수치 (B-2) ----
 
-    // 새 게임이면 시작 수치로 채운다 (이미 채워져 있으면 그대로)
-    public PlayerState EnsurePlayer(BattleSettings settings)
+    // 새 게임이면 시작 지급품으로 채운다. 계산된 수치(장비 포함)는 매번 다시 맞춘다 (C-1)
+    public PlayerState EnsurePlayer(BattleSettings settings, GameDatabase database)
     {
         if (state.player == null || !state.player.initialized)
         {
             state.player = PlayerState.CreateFrom(settings.playerBase);
         }
 
+        PlayerStats.Recalculate(state.player, settings, database);
         return state.player;
     }
 

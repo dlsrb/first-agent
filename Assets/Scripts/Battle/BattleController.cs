@@ -12,6 +12,8 @@ public class BattleController : MonoBehaviour
     [Header("데이터")]
     public BattleSettings settings;
     public GameDatabase database;
+    [Tooltip("[C-1] 보상·드롭")]
+    public EconomySettings economy;
 
     [Header("괴이")]
     public TMP_Text monsterNameText;
@@ -79,6 +81,8 @@ public class BattleController : MonoBehaviour
     public bool IsActive => gameObject.activeSelf;
     public BattleEngine Engine { get; private set; }
     public PlaceData CurrentPlace { get; private set; }
+    // [C-1] 마지막 승리 보상 (결과 창·테스트 확인용)
+    public BattleReward LastReward { get; private set; }
 
     readonly List<TMP_Text> diceTexts = new List<TMP_Text>();
     readonly List<Button> diceButtons = new List<Button>();
@@ -89,6 +93,7 @@ public class BattleController : MonoBehaviour
     int logCursor;
     bool defending;
     float touchBonus;
+    System.Random rng;
     Sprite defaultMonsterSprite;
     Color defaultMonsterColor;
     bool defaultsSaved;
@@ -104,9 +109,16 @@ public class BattleController : MonoBehaviour
             return false;
         }
 
-        GameStateManager.Instance.EnsurePlayer(settings);
+        if (economy == null)
+        {
+            Debug.LogWarning("BattleController에 EconomySettings가 연결되지 않았습니다 (보상 없음).");
+        }
+
+        GameStateManager.Instance.EnsurePlayer(settings, database);
+        LastReward = null;
 
         var rng = new System.Random(Environment.TickCount);
+        this.rng = rng;
         MonsterData monster = PickMonster(place, area, rng);
 
         if (monster == null)
@@ -613,15 +625,20 @@ public class BattleController : MonoBehaviour
         {
             case BattleOutcome.Win:
                 resultTitleText.text = "승리!";
-                detail = "[보상은 C단계]";
 
-                // 첫 클리어 기록 (C단계 재도전 보상 감소에 사용)
+                // 보상 종류: 스토리 장소는 첫 클리어/재도전, 나머지는 일반 (C-1)
+                var kind = RewardKind.Normal;
+
                 if (CurrentPlace != null && CurrentPlace.battle.mode == BattleMode.Story)
                 {
                     bool first = !GameStateManager.Instance.HasFlag(StateKeys.BattleCleared(CurrentPlace.locationId));
                     GameStateManager.Instance.SetFlag(StateKeys.BattleCleared(CurrentPlace.locationId));
-                    detail = first ? "[첫 클리어! 보상은 C단계]" : "[재도전 클리어, 보상은 C단계]";
+                    kind = first ? RewardKind.StoryFirst : RewardKind.StoryRetry;
                 }
+
+                LastReward = RewardCalculator.Roll(economy, Engine.monster, kind, rng ?? new System.Random());
+                RewardCalculator.Apply(p, LastReward);
+                detail = RewardCalculator.Describe(LastReward) + "\n소지 골드 " + p.gold;
 
                 if (Engine.monster.IsBoss)
                 {
