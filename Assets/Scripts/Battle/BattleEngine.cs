@@ -406,7 +406,8 @@ public class BattleEngine
     {
         float dice = roll.sum * (withCombo ? roll.comboMultiplier : 1f);
         float raw = (dice + PlayerAttackStat) * (crit ? settings.critMultiplier : 1f) * PlayerDamageFactor;
-        return Clamp(raw * 100f / (100f + MonsterDefense));
+        float taken = Math.Max(0f, 1f + SumDamageTakenPercent(monsterEffects) / 100f);   // 빈틈 등
+        return Clamp(raw * taken * 100f / (100f + MonsterDefense));
     }
 
     public AttackResult ConfirmAttack()
@@ -616,6 +617,7 @@ public class BattleEngine
                     if (blocked)
                     {
                         Log(action.effect.effectName + "을(를) 막았다!");
+                        GiveOpening();
                     }
                     else
                     {
@@ -627,6 +629,11 @@ public class BattleEngine
 
             case MonsterActionKind.Reflect:
                 Log(monster.monsterName + "이(가) 자세를 풀었다.");
+
+                if (useTurnFlags && usedSpecial == SpecialAction.Wait)
+                {
+                    GiveOpening();
+                }
                 break;
 
             case MonsterActionKind.Buff:
@@ -636,6 +643,20 @@ public class BattleEngine
                     Log(monster.monsterName + ": " + action.effect.effectName);
                 }
                 break;
+        }
+    }
+
+    // 예고 대응 성공 보상: 괴이에게 빈틈 (다음 턴 공격 피해 증가)
+    public int counterSuccessCount;
+
+    void GiveOpening()
+    {
+        counterSuccessCount++;
+
+        if (settings.counterOpeningEffect != null)
+        {
+            AddOrRefresh(monsterEffects, settings.counterOpeningEffect, true);
+            Log("빈틈! 다음 공격 피해 증가");
         }
     }
 
@@ -818,6 +839,18 @@ public class BattleEngine
         foreach (var e in effects)
         {
             sum += e.data.defensePercent;
+        }
+
+        return sum;
+    }
+
+    static float SumDamageTakenPercent(List<ActiveEffect> effects)
+    {
+        float sum = 0f;
+
+        foreach (var e in effects)
+        {
+            sum += e.data.damageTakenPercent;
         }
 
         return sum;

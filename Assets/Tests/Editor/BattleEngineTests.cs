@@ -19,7 +19,7 @@ public class BattleEngineTests
 
     BattleSettings settings;
     GameDatabase db;
-    StatusEffectData taunt, morale, poison, cough;
+    StatusEffectData taunt, morale, poison, cough, opening;
     SkillData reroll, lockDie;
     ItemData food;
     ScriptedRandom rng;
@@ -31,8 +31,11 @@ public class BattleEngineTests
         taunt = Effect("taunt", 3, atk: 30, def: -30);
         morale = Effect("morale", 3, atk: -30, blockedBy: SpecialAction.CoverEars);
         poison = Effect("poison", 3, dpt: 5, blockedBy: SpecialAction.HoldBreath);
-        cough = Effect("cough", 2, chance: -20, blockedBy: SpecialAction.CoverMouth);
+        cough = Effect("cough", 2, atk: -20, chance: -30, blockedBy: SpecialAction.CoverMouth);
         settings.tauntEffect = taunt;
+        opening = Effect("opening", 1);
+        opening.damageTakenPercent = 50;
+        settings.counterOpeningEffect = opening;
 
         reroll = ScriptableObject.CreateInstance<SkillData>(); reroll.skillId = "reroll"; reroll.kind = SkillKind.Reroll; reroll.energyCost = 2;
         lockDie = ScriptableObject.CreateInstance<SkillData>(); lockDie.skillId = "lock"; lockDie.kind = SkillKind.LockDie; lockDie.energyCost = 3;
@@ -282,6 +285,58 @@ public class BattleEngineTests
         Assert.AreEqual(80, p.currentHp);
         Assert.AreEqual(0, p.CountOf("food"));
         Assert.IsFalse(e.CanSpecial(SpecialAction.EatFood));
+    }
+
+    // ---------- 예고 대응 보상 (빈틈)·기침 ----------
+
+    MonsterAction Idle()
+    {
+        return new MonsterAction { actionId = "idle", kind = MonsterActionKind.Buff, effect = null };
+    }
+
+    [Test]
+    public void CounterSuccess_GivesOpening_NextAttackPlus50_OneTurn()
+    {
+        rng.picks.Enqueue(0); rng.picks.Enqueue(1); rng.picks.Enqueue(1); rng.picks.Enqueue(1);
+        var e = Engine(Player(), Monster(def: 0, actions: new[] { Debuff(morale), Idle() }));
+        e.Special(SpecialAction.CoverEars);    // 막음 → 빈틈
+        Assert.AreEqual(1, e.counterSuccessCount);
+        Attack(e, 3, 5);                       // 13 × 1.5 = 19.5 → 20
+        Assert.AreEqual(1000 - 20, e.MonsterHp);
+        Attack(e, 3, 5);                       // 빈틈 끝 → 13
+        Assert.AreEqual(1000 - 33, e.MonsterHp);
+    }
+
+    [Test]
+    public void WrongSpecial_NoOpening()
+    {
+        rng.picks.Enqueue(0); rng.picks.Enqueue(1);
+        var e = Engine(Player(), Monster(def: 0, actions: new[] { Debuff(morale), Idle() }));
+        e.Special(SpecialAction.HoldBreath);
+        Assert.AreEqual(0, e.counterSuccessCount);
+    }
+
+    [Test]
+    public void WaitAgainstReflect_GivesOpening()
+    {
+        var reflect = new MonsterAction { actionId = "reflect", kind = MonsterActionKind.Reflect };
+        rng.picks.Enqueue(0); rng.picks.Enqueue(1);
+        var e = Engine(Player(), Monster(def: 0, actions: new[] { reflect, Idle() }));
+        e.Special(SpecialAction.Wait);
+        Assert.AreEqual(1, e.counterSuccessCount);
+        Attack(e, 3, 5);
+        Assert.AreEqual(1000 - 20, e.MonsterHp);
+    }
+
+    [Test]
+    public void Cough_ReducesPlayerDamage20()
+    {
+        rng.picks.Enqueue(0); rng.picks.Enqueue(1);
+        var e = Engine(Player(), Monster(def: 0, actions: new[] { Debuff(cough), Idle() }));
+        e.Special(SpecialAction.Wait);         // 기침 걸림
+        Attack(e, 3, 5);                       // 13 × 0.8 = 10.4 → 10
+        Assert.AreEqual(1000 - 10, e.MonsterHp);
+        Assert.AreEqual(0.0f, e.DefenseChance(0f), 1e-4, "30% − 30%p = 0%");
     }
 
     // ---------- 도망 ----------

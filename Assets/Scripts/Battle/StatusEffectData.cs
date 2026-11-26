@@ -32,6 +32,9 @@ public class StatusEffectData : ScriptableObject
     [Tooltip("방어력 ±% (괴이 방어력·주인공 방어 스탯)")]
     public float defensePercent = 0f;
 
+    [Tooltip("받는 피해 ±% (예: 빈틈 +50% → 이 효과가 걸린 쪽이 공격받을 때 피해 증가)")]
+    public float damageTakenPercent = 0f;
+
     [Tooltip("방어 확률 ±%p (주인공 방어 행동)")]
     public float defenseChancePoints = 0f;
 

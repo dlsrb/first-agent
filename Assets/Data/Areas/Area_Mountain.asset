@@ -27,3 +27,5 @@ MonoBehaviour:
   encounters:
   - monster: {fileID: 11400000, guid: 92d5c1e0435ea36429e18858a1107629, type: 2}
     weight: 1
+  - monster: {fileID: 11400000, guid: 821bf539697239f49909e67f7ba0c5e7, type: 2}
+    weight: 1

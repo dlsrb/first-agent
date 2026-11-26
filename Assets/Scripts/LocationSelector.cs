@@ -30,6 +30,10 @@ public class LocationSelector : MonoBehaviour
     [Tooltip("구역 맵에서만 보이는 '지역 지도로' 버튼")]
     public GameObject backToRegionButton;
 
+    // [B-2 추가]
+    [Header("전투")]
+    public BattleController battleController;
+
     [Header("카메라 설정")]
     public float zoomedCameraSize = 2.5f;
     public float cameraMoveSpeed = 5f;
@@ -90,6 +94,12 @@ public class LocationSelector : MonoBehaviour
             Debug.LogWarning("LocationSelector에 MapView가 연결되지 않았습니다.");
         }
 
+        if (battleController != null)
+        {
+            battleController.gameObject.SetActive(false);
+            battleController.BattleFinished += HandleBattleFinished;
+        }
+
         // 카메라 초기 설정
         mainCamera = Camera.main;
 
@@ -106,9 +116,14 @@ public class LocationSelector : MonoBehaviour
 
     void Update()
     {
-        // 장소 내부 화면이 열려 있으면 지도 클릭 방지
+        // 장소 내부 화면·전투 화면이 열려 있으면 지도 클릭 방지
         if (placeInteriorPanel != null &&
             placeInteriorPanel.activeSelf)
+        {
+            return;
+        }
+
+        if (battleController != null && battleController.IsActive)
         {
             return;
         }
@@ -346,6 +361,19 @@ public class LocationSelector : MonoBehaviour
             return;
         }
 
+        // [B-2] 전투 장소면 바로 전투 (스토리 전투의 만화는 B-4)
+        if (data.battle.mode != BattleMode.None && battleController != null)
+        {
+            StartBattleAt(data);
+            return;
+        }
+
+        OpenInterior(data);
+    }
+
+    // [B-2] 장소 내부 화면 열기 (진입·패배 후 병원 복귀에서 사용)
+    void OpenInterior(PlaceData data)
+    {
         // 현재 장소 데이터를 상호작용 시스템에 전달
         if (interactionController != null)
         {
@@ -375,9 +403,83 @@ public class LocationSelector : MonoBehaviour
         }
 
         // 장소 내부 화면 표시
-        placeInteriorPanel.SetActive(true);
+        if (placeInteriorPanel != null)
+        {
+            placeInteriorPanel.SetActive(true);
+        }
 
         Debug.Log(data.placeName + "에 진입했습니다.");
+    }
+
+    // ---------- [B-2] 전투 ----------
+
+    void StartBattleAt(PlaceData place)
+    {
+        AreaData area = mapView != null ? mapView.CurrentArea : null;
+
+        // 전투가 끝나면 들어갔던 구역 맵(선택 없음, 카메라 초기 위치)으로 돌아온다
+        ClearSelection();
+        ResetCameraImmediately();
+
+        if (!battleController.StartBattle(place, area))
+        {
+            Debug.LogWarning(place.placeName + ": 전투를 시작하지 못했습니다.");
+        }
+    }
+
+    void HandleBattleFinished(BattleOutcome outcome, PlaceData place)
+    {
+        if (outcome != BattleOutcome.Lose)
+        {
+            Debug.Log("전투 종료 (" + outcome + "), 구역 맵으로 돌아왔습니다.");
+            return;
+        }
+
+        // 패배: 마지막으로 들른 병원(복귀 장소)에서 시작
+        var settings = battleController.settings;
+        var player = GameStateManager.Instance.State.player;
+        AreaData area = FindArea(player.respawnAreaId) ?? (settings != null ? settings.defaultRespawnArea : null);
+        PlaceData respawn = FindPlace(area, player.respawnPlaceId) ?? (settings != null ? settings.defaultRespawnPlace : null);
+
+        if (area == null || respawn == null || mapView == null)
+        {
+            Debug.LogWarning("복귀 장소를 찾지 못했습니다. BattleSettings의 기본 복귀 장소를 확인하세요.");
+            return;
+        }
+
+        ClearSelection();
+        ResetCameraImmediately();
+        mapView.ShowArea(area);
+
+        if (backToRegionButton != null)
+        {
+            backToRegionButton.SetActive(true);
+        }
+
+        OpenInterior(respawn);
+        Debug.Log("패배 → " + respawn.placeName + "에서 깨어났습니다.");
+    }
+
+    AreaData FindArea(string areaId)
+    {
+        if (string.IsNullOrEmpty(areaId) || mapView == null || mapView.CurrentRegion == null)
+        {
+            return null;
+        }
+
+        var entry = mapView.CurrentRegion.areas.Find(e => e != null && e.area != null && e.area.areaId == areaId);
+        return entry != null ? entry.area : null;
+    }
+
+    static PlaceData FindPlace(AreaData area, string placeId)
+    {
+        if (area == null || string.IsNullOrEmpty(placeId))
+        {
+            return null;
+        }
+
+        var entry = area.places.Find(e => e != null && e.place != null && e.place.locationId == placeId);
+        return entry != null ? entry.place : null;
     }
 
     // 장소 내부 → 구역 맵 (ExitButton OnClick)

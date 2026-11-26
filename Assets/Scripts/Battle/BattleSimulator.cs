@@ -278,6 +278,7 @@ public static class BattleSimulator
         {
             Row(sb, s, db, basePlayer, m, new Options { policy = Policy.Smart }, "예고 대응", n, seed);
             Row(sb, s, db, basePlayer, m, new Options { policy = Policy.Smart, useSkills = true }, "예고 대응+스킬", n, seed);
+            Row(sb, s, db, basePlayer, m, new Options { policy = Policy.SmartTaunt }, "예고 대응+첫 턴 도발", n, seed);
             Row(sb, s, db, basePlayer, m, new Options { policy = Policy.AttackOnly }, "무조건 공격", n, seed);
         }
 

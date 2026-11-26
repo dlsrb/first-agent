@@ -33,6 +33,7 @@ MonoBehaviour:
   fleeFailDamageMultiplier: 2
   reflectRatio: 1
   tauntEffect: {fileID: 11400000, guid: 8d53ab60822c24e4b94701b0728d3eab, type: 2}
+  counterOpeningEffect: {fileID: 11400000, guid: c01e8be13cee79c4eadae18b726a71f9, type: 2}
   defeatGoldLossRatio: 0.1
   reviveHpRatio: 0.3
   defaultRespawnArea: {fileID: 11400000, guid: 5202d42ba449be748ba288b9c364756e, type: 2}

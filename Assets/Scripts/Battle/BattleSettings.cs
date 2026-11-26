@@ -36,6 +36,8 @@ public class BattleSettings : ScriptableObject
     public float reflectRatio = 1f;
     [Tooltip("도발하기로 괴이에게 거는 효과")]
     public StatusEffectData tauntEffect;
+    [Tooltip("예고 대응 성공(맞는 특수 행동으로 디버프를 막거나 반사 자세에 가만히 있기) 시 괴이에게 거는 효과 (빈틈)")]
+    public StatusEffectData counterOpeningEffect;
 
     [Header("전투 후")]
     [Range(0, 1)] public float defeatGoldLossRatio = 0.10f;

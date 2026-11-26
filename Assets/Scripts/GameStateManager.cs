@@ -58,6 +58,19 @@ public class GameStateManager : MonoBehaviour
         }
     }
 
+    // ---- 주인공 수치 (B-2) ----
+
+    // 새 게임이면 시작 수치로 채운다 (이미 채워져 있으면 그대로)
+    public PlayerState EnsurePlayer(BattleSettings settings)
+    {
+        if (state.player == null || !state.player.initialized)
+        {
+            state.player = PlayerState.CreateFrom(settings.playerBase);
+        }
+
+        return state.player;
+    }
+
     // ---- E단계 세이브/로드용 ----
 
     public string ToJson()

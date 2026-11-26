@@ -17,8 +17,9 @@ MonoBehaviour:
   icon: {fileID: 0}
   isDebuff: 1
   duration: 2
-  attackPercent: 0
+  attackPercent: -40
   defensePercent: 0
+  damageTakenPercent: 0
   defenseChancePoints: -30
   damagePerTurn: 0
   healPerTurn: 0
