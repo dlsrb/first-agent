@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0aef8bbfc87a5054f8c7fe9efef8b8c8, type: 3}
+  m_Name: Region_Main
+  m_EditorClassIdentifier: 
+  regionId: main
+  regionName: "[\uC9C0\uC5ED \uC774\uB984 \uBBF8\uC815]"
+  description: "[\uC9C0\uC5ED \uC124\uBA85 \uBBF8\uC815]"
+  mapImage: {fileID: 0}
+  areas:
+  - area: {fileID: 11400000, guid: 5202d42ba449be748ba288b9c364756e, type: 2}
+    mapPosition: {x: 0.35, y: 0.55}
+  - area: {fileID: 11400000, guid: 8678fc8921e56ae48af993d2904ae499, type: 2}
+    mapPosition: {x: 0.68, y: 0.75}
+  - area: {fileID: 11400000, guid: cfe6c33dde0080243ba1eaa496624184, type: 2}
+    mapPosition: {x: 0.58, y: 0.25}

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d841a01ef702e246b95770bb09a4780, type: 3}
+  m_Name: Area_Mountain
+  m_EditorClassIdentifier: 
+  areaId: mountain
+  areaName: "[\uAD6C\uC5ED \uC774\uB984 \uBBF8\uC815]"
+  areaType: 1
+  description: "[\uAD6C\uC5ED \uC124\uBA85 \uBBF8\uC815]"
+  mapImage: {fileID: 0}
+  places:
+  - place: {fileID: 11400000, guid: 352b3cf4af25e1445a3281e27c1c960d, type: 2}
+    mapPosition: {x: 0.4, y: 0.62}
+  - place: {fileID: 11400000, guid: edace140368dc36498ba474271dfce8f, type: 2}
+    mapPosition: {x: 0.62, y: 0.38}

@@ -100,6 +100,8 @@ public class InteractionController : MonoBehaviour
         {
             if (old != null)
             {
+                // Destroy는 프레임 끝에 지워지므로 먼저 꺼서 바로 안 보이게
+                old.gameObject.SetActive(false);
                 Destroy(old.gameObject);
             }
         }
