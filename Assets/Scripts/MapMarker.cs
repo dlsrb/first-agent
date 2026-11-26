@@ -16,7 +16,10 @@ public class MapMarker : MonoBehaviour
     public bool IsArea => Area != null;
 
     public string DisplayName => IsArea ? Area.areaName : (Place != null ? Place.placeName : "");
-    public string TypeText => IsArea ? Area.areaType.ToString() : (Place != null ? Place.placeType.ToString() : "");
+    // [A-5] 한글 표시 (DisplayNames에서 관리)
+    public string TypeText => IsArea
+        ? DisplayNames.AreaTypeLine(Area.areaType)
+        : (Place != null ? DisplayNames.PlaceTypeLine(Place.placeType) : "");
     public string Description => IsArea ? Area.description : (Place != null ? Place.description : "");
 
     private Vector3 baseScale = Vector3.one;
