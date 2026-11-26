@@ -49,6 +49,7 @@ public class BattleEngine
     SpecialAction usedSpecial = SpecialAction.None;
     bool defendSucceeded;
     bool fleeFailed;
+    bool tauntUsedThisTurn;
 
     // 공격 진행 중 (굴린 뒤 확정 전)
     public DiceRoll PendingRoll { get; private set; }
@@ -182,6 +183,7 @@ public class BattleEngine
         usedSpecial = SpecialAction.None;
         defendSucceeded = false;
         fleeFailed = false;
+        tauntUsedThisTurn = false;
         PendingRoll = null;
         rerollUsed = false;
 
@@ -488,8 +490,17 @@ public class BattleEngine
             return FirstConsumable() != null;
         }
 
+        // 도발은 턴을 쓰지 않으므로 한 턴에 한 번만
+        if (action == SpecialAction.Taunt)
+        {
+            return !tauntUsedThisTurn && settings.tauntEffect != null;
+        }
+
         return true;
     }
+
+    // 도발을 이번 턴에 이미 했는지 (화면 표시용)
+    public bool TauntUsedThisTurn => tauntUsedThisTurn;
 
     public void Special(SpecialAction action)
     {
@@ -498,18 +509,19 @@ public class BattleEngine
             return;
         }
 
+        // [B-3 규칙 변경] 도발은 턴을 쓰지 않는다: 효과만 걸고 같은 턴에 다른 행동을 이어서 한다
+        if (action == SpecialAction.Taunt)
+        {
+            tauntUsedThisTurn = true;
+            AddOrRefresh(monsterEffects, settings.tauntEffect, false);
+            Log("도발! " + settings.tauntEffect.effectName);
+            return;
+        }
+
         usedSpecial = action;
 
         switch (action)
         {
-            case SpecialAction.Taunt:
-                if (settings.tauntEffect != null)
-                {
-                    AddOrRefresh(monsterEffects, settings.tauntEffect, false);
-                    Log("도발! " + settings.tauntEffect.effectName);
-                }
-                break;
-
             case SpecialAction.EatFood:
                 var item = FirstConsumable();
                 player.RemoveItem(item.itemId, 1);
@@ -519,7 +531,7 @@ public class BattleEngine
                 break;
 
             default:
-                Log(action.ToString());
+                Log(DisplayNames.Special(action) + "!");
                 break;
         }
 

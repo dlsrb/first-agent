@@ -9,7 +9,8 @@ public static class BattleSimulator
     public enum Policy
     {
         Smart,       // 예고를 읽고 맞는 특수 행동, 체력 30% 이하면 방어, 나머지는 공격
-        SmartTaunt,  // Smart + 첫 턴 도발 (보스용 비교)
+        SmartTaunt,  // Smart + 첫 턴 도발 (도발은 턴을 쓰지 않음)
+        SmartTauntKeep, // Smart + 도발이 꺼질 때마다 다시 도발
         AttackOnly   // 무조건 공격 (조합에만 기대는 플레이)
     }
 
@@ -64,10 +65,12 @@ public static class BattleSimulator
         var p = e.player;
         float hpRatio = (float)p.currentHp / p.maxHp;
 
-        if (o.policy == Policy.SmartTaunt && e.Turn == 1)
+        // 도발은 턴을 쓰지 않으므로 걸고 나서 이번 턴 행동을 이어서 고른다
+        bool tauntActive = e.monsterEffects.Exists(x => x.data == e.settings.tauntEffect);
+
+        if ((o.policy == Policy.SmartTaunt && e.Turn == 1) || (o.policy == Policy.SmartTauntKeep && !tauntActive))
         {
             e.Special(SpecialAction.Taunt);
-            return;
         }
 
         if (intent != null && intent.kind == MonsterActionKind.Reflect)
@@ -279,6 +282,7 @@ public static class BattleSimulator
             Row(sb, s, db, basePlayer, m, new Options { policy = Policy.Smart }, "예고 대응", n, seed);
             Row(sb, s, db, basePlayer, m, new Options { policy = Policy.Smart, useSkills = true }, "예고 대응+스킬", n, seed);
             Row(sb, s, db, basePlayer, m, new Options { policy = Policy.SmartTaunt }, "예고 대응+첫 턴 도발", n, seed);
+            Row(sb, s, db, basePlayer, m, new Options { policy = Policy.SmartTauntKeep }, "예고 대응+도발 유지", n, seed);
             Row(sb, s, db, basePlayer, m, new Options { policy = Policy.AttackOnly }, "무조건 공격", n, seed);
         }
 
@@ -297,6 +301,7 @@ public static class BattleSimulator
             Row(sb, s, db, basePlayer, m, new Options { policy = Policy.Smart, useSkills = true, allowFood = true }, "시작 장비, 스킬·음식", n, seed);
             Row(sb, s, db, geared, m, new Options { policy = Policy.Smart, useSkills = true, allowFood = true }, "적정 장비(+5/+10), 스킬·음식", n, seed);
             Row(sb, s, db, geared, m, new Options { policy = Policy.SmartTaunt, useSkills = true, allowFood = true }, "적정 장비, 첫 턴 도발", n, seed);
+            Row(sb, s, db, geared, m, new Options { policy = Policy.SmartTauntKeep, useSkills = true, allowFood = true }, "적정 장비, 도발 유지", n, seed);
             Row(sb, s, db, geared, m, new Options { policy = Policy.Smart }, "적정 장비, 스킬·음식 없음", n, seed);
         }
 

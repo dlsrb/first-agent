@@ -76,6 +76,9 @@ public static class BattleUIBuilder
         AddImage(bubble, White, uiSprite).type = Image.Type.Sliced;
         bc.intentText = Text("IntentText", bubble, "[예고]", 32, Dark, TextAlignmentOptions.Center, mid, Vector2.zero, new Vector2(540, 180));
 
+        // [B-3] 괴이에게 걸린 효과 (괴이 왼쪽)
+        bc.monsterEffectsText = Text("MonsterEffectsText", panel, "", 28, new Color(1f, 0.8f, 0.45f), TextAlignmentOptions.TopRight, mid, new Vector2(-400, 300), new Vector2(420, 200));
+
         bc.messageText = Text("MessageText", panel, "", 30, new Color(1f, 0.92f, 0.6f), TextAlignmentOptions.Center, mid, new Vector2(0, -140), new Vector2(1500, 120));
 
         // ---- 아래쪽 가운데: 주인공 체력·기력, 왼쪽에 상태 효과 ----
@@ -90,7 +93,7 @@ public static class BattleUIBuilder
         bc.actionButtons = actions.gameObject;
         bc.attackButton = Button("AttackButton", actions, "공격", 44, mid, new Vector2(-690, 0), new Vector2(400, 120), bc.OnAttackButton);
         bc.defendButton = Button("DefendButton", actions, "방어", 44, mid, new Vector2(-230, 0), new Vector2(400, 120), bc.OnDefendButton);
-        bc.specialButton = Button("SpecialButton", actions, "특수 행동", 44, mid, new Vector2(230, 0), new Vector2(400, 120), null);
+        bc.specialButton = Button("SpecialButton", actions, "특수 행동", 44, mid, new Vector2(230, 0), new Vector2(400, 120), bc.OnSpecialButton);
         bc.fleeButton = Button("FleeButton", actions, "도망", 44, mid, new Vector2(690, 0), new Vector2(400, 120), bc.OnFleeButton);
 
         // ---- 공격 기믹 영역 (주사위) ----
@@ -104,16 +107,48 @@ public static class BattleUIBuilder
         hlg.childControlWidth = hlg.childControlHeight = false; hlg.childForceExpandWidth = hlg.childForceExpandHeight = false;
         bc.diceRoot = diceRoot;
         var die = Rect("DiceTemplate", diceRoot, mid, mid, Vector2.zero, new Vector2(150, 150));
-        AddImage(die, White, uiSprite).type = Image.Type.Sliced;
+        var dieImg = AddImage(die, White, uiSprite);
+        dieImg.type = Image.Type.Sliced;
+        var dieButton = die.gameObject.AddComponent<Button>();   // [B-3] 주사위 고정 때 누를 수 있게 (평소엔 비활성)
+        dieButton.targetGraphic = dieImg;
+        var dieColors = dieButton.colors;
+        dieColors.disabledColor = White;                          // 평소(누를 수 없을 때)도 흰 주사위
+        dieColors.normalColor = new Color(1f, 0.95f, 0.7f);       // 고를 수 있을 때는 연노랑
+        dieColors.highlightedColor = new Color(1f, 0.9f, 0.5f);
+        dieButton.colors = dieColors;
         Text("Face", die, "?", 84, Dark, TextAlignmentOptions.Center, mid, Vector2.zero, new Vector2(150, 150));
         die.gameObject.SetActive(false);
         bc.diceTemplate = die.gameObject;
-        bc.comboText = Text("ComboText", atk, "", 44, new Color(1f, 0.85f, 0.3f), TextAlignmentOptions.Left, mid, new Vector2(140, 40), new Vector2(520, 64));
-        bc.previewText = Text("PreviewText", atk, "", 32, White, TextAlignmentOptions.Left, mid, new Vector2(140, -25), new Vector2(560, 56));
+        bc.comboText = Text("ComboText", atk, "", 40, new Color(1f, 0.85f, 0.3f), TextAlignmentOptions.Left, mid, new Vector2(140, 62), new Vector2(560, 50));
+        bc.previewText = Text("PreviewText", atk, "", 28, White, TextAlignmentOptions.Left, mid, new Vector2(140, 10), new Vector2(560, 64));
+        // [B-3] 굴린 뒤 쓰는 스킬 버튼 2개
+        bc.skillButton1 = Button("SkillButton1", atk, "스킬 1", 24, mid, new Vector2(5, -62), new Vector2(270, 56), bc.OnSkillButton1);
+        bc.skillButton2 = Button("SkillButton2", atk, "스킬 2", 24, mid, new Vector2(285, -62), new Vector2(270, 56), bc.OnSkillButton2);
+        bc.skillButton1.gameObject.SetActive(false);
+        bc.skillButton2.gameObject.SetActive(false);
         bc.rollButton = Button("RollButton", atk, "굴리기", 40, mid, new Vector2(570, 30), new Vector2(300, 95), bc.OnRollButton);
         bc.confirmAttackButton = Button("ConfirmAttackButton", atk, "공격!", 40, mid, new Vector2(570, 30), new Vector2(300, 95), bc.OnConfirmAttack);
         bc.attackBackButton = Button("AttackBackButton", atk, "뒤로", 30, mid, new Vector2(570, -60), new Vector2(300, 60), bc.OnAttackBack);
         atk.gameObject.SetActive(false);
+
+        // ---- [B-3] 특수 행동 창: 목록형 2×2 + X + ▶ (맵구상도 4페이지), 행동 버튼 자리에 표시 ----
+        var sp = Rect("SpecialPopup", panel, bottom, bottom, new Vector2(0, 125), new Vector2(1500, 200));
+        AddImage(sp, new Color(0.3f, 0.3f, 0.36f), null);
+        var grid = Rect("SpecialItems", sp, mid, mid, new Vector2(-60, 0), new Vector2(1140, 176));
+        var gl = grid.gameObject.AddComponent<GridLayoutGroup>();
+        gl.cellSize = new Vector2(560, 80);
+        gl.spacing = new Vector2(20, 16);
+        gl.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        gl.constraintCount = 2;
+        gl.childAlignment = TextAnchor.MiddleCenter;
+        bc.specialItemRoot = grid;
+        bc.specialItemTemplate = Button("SpecialItemTemplate", grid, "[특수 행동]", 28, mid, Vector2.zero, new Vector2(560, 80), null);
+        bc.specialItemTemplate.gameObject.SetActive(false);
+        Button("SpecialCloseButton", sp, "X", 36, mid, new Vector2(690, 55), new Vector2(70, 70), bc.OnSpecialClose);
+        bc.specialNextButton = Button("SpecialNextButton", sp, "▶", 32, mid, new Vector2(690, -45), new Vector2(70, 70), bc.OnSpecialNextPage);
+        bc.specialPageText = Text("SpecialPageText", sp, "1/1", 26, White, TextAlignmentOptions.Center, mid, new Vector2(-690, 0), new Vector2(90, 50));
+        sp.gameObject.SetActive(false);
+        bc.specialPopup = sp.gameObject;
 
         // ---- 방어 창: 전체 화면 버튼 (어디를 눌러도 연속 터치) ----
         var def = Rect("DefensePopup", panel, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);

@@ -20,6 +20,8 @@ public class BattleController : MonoBehaviour
     public Image monsterHpFill;
     public TMP_Text monsterHpText;
     public TMP_Text intentText;
+    [Tooltip("[B-3] 괴이에게 걸린 효과 (도발·빈틈 등)")]
+    public TMP_Text monsterEffectsText;
 
     [Header("주인공")]
     public Image playerHpFill;
@@ -45,6 +47,16 @@ public class BattleController : MonoBehaviour
     public Button rollButton;
     public Button confirmAttackButton;
     public Button attackBackButton;
+    [Tooltip("[B-3] 굴린 뒤 쓰는 스킬 버튼 (장착 스킬 순서대로, 최대 2개)")]
+    public Button skillButton1;
+    public Button skillButton2;
+
+    [Header("특수 행동 창 (B-3)")]
+    public GameObject specialPopup;
+    public Transform specialItemRoot;
+    public Button specialItemTemplate;
+    public TMP_Text specialPageText;
+    public Button specialNextButton;
 
     [Header("방어 창 (연속 터치)")]
     public GameObject defensePopup;
@@ -69,6 +81,11 @@ public class BattleController : MonoBehaviour
     public PlaceData CurrentPlace { get; private set; }
 
     readonly List<TMP_Text> diceTexts = new List<TMP_Text>();
+    readonly List<Button> diceButtons = new List<Button>();
+    readonly List<Button> specialItems = new List<Button>();
+    const int SpecialPageSize = 4;   // 2×2 (맵구상도)
+    int specialPage;
+    SkillData pendingLockSkill;      // 주사위 고정: 고를 주사위를 기다리는 중
     int logCursor;
     bool defending;
     float touchBonus;
@@ -172,8 +189,10 @@ public class BattleController : MonoBehaviour
 
         BuildDice();
         SetDiceFaces(null);
+        SetDiceClickable(false);
+        pendingLockSkill = null;
         comboText.text = "";
-        previewText.text = "주사위를 굴리세요";
+        previewText.text = Engine.LockedDieValue > 0 ? "주사위를 굴리세요 (첫 주사위 " + Engine.LockedDieValue + " 고정)" : "주사위를 굴리세요";
         rollButton.gameObject.SetActive(true);
         confirmAttackButton.gameObject.SetActive(false);
         attackBackButton.gameObject.SetActive(true);
@@ -204,18 +223,236 @@ public class BattleController : MonoBehaviour
             yield return new WaitForSecondsRealtime(0.05f);
         }
 
-        var roll = Engine.RollDice();
+        Engine.RollDice();
+        ShowRollResult();
+        confirmAttackButton.gameObject.SetActive(true);
+    }
+
+    // 굴린 결과·조합·예상 피해·스킬 버튼 갱신
+    void ShowRollResult()
+    {
+        var roll = Engine.PendingRoll;
         SetDiceFaces(roll);
         comboText.text = roll.combo ? "조합! ×" + roll.comboMultiplier : "";
-        previewText.text = "예상 피해 " + Engine.PreviewDamage(roll) + (Engine.MonsterReflecting ? "  (반사 자세 주의!)" : "");
-        confirmAttackButton.gameObject.SetActive(true);
+        previewText.text = "예상 피해 " + Engine.PreviewDamage(roll) +
+                           (Engine.MonsterReflecting ? "  (반사 자세 주의!)" : "") +
+                           (Engine.LockedDieValue > 0 ? "\n다음 공격: " + Engine.LockedDieValue + " 고정" : "");
+        RefreshSkillButtons();
+        Refresh();
     }
 
     public void OnConfirmAttack()
     {
         if (Engine == null || Engine.PendingRoll == null) return;
 
+        pendingLockSkill = null;
         Engine.ConfirmAttack();
+        AfterAction();
+    }
+
+    // ---------- [B-3] 스킬 (굴린 뒤 사용) ----------
+
+    public void OnSkillButton1() { UseSkillSlot(0); }
+    public void OnSkillButton2() { UseSkillSlot(1); }
+
+    void UseSkillSlot(int slot)
+    {
+        if (Engine == null || Engine.PendingRoll == null) return;
+
+        var skills = Engine.EquippedSkills;
+        if (slot >= skills.Count) return;
+
+        var skill = skills[slot];
+
+        if (!Engine.CanUseSkill(skill)) return;
+
+        if (skill.kind == SkillKind.Reroll)
+        {
+            Engine.UseReroll(skill);
+            ShowRollResult();
+            ShowNewMessages(null);
+        }
+        else if (skill.kind == SkillKind.LockDie)
+        {
+            // 고를 주사위를 누르면 고정
+            pendingLockSkill = skill;
+            previewText.text = "고정할 주사위를 누르세요";
+            SetDiceClickable(true);
+        }
+    }
+
+    void OnDieClicked(int index)
+    {
+        if (pendingLockSkill == null || Engine == null) return;
+
+        Engine.UseLockDie(pendingLockSkill, index);
+        pendingLockSkill = null;
+        SetDiceClickable(false);
+        ShowRollResult();
+        ShowNewMessages(null);
+    }
+
+    void RefreshSkillButtons()
+    {
+        var skills = Engine.EquippedSkills;
+        var buttons = new[] { skillButton1, skillButton2 };
+
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            if (buttons[i] == null) continue;
+
+            bool has = i < skills.Count && skills[i].timing == SkillTiming.AfterRoll && Engine.PendingRoll != null;
+            buttons[i].gameObject.SetActive(has);
+
+            if (has)
+            {
+                buttons[i].interactable = Engine.CanUseSkill(skills[i]) && pendingLockSkill == null;
+                buttons[i].GetComponentInChildren<TMP_Text>(true).text = skills[i].skillName + " (기력 " + skills[i].energyCost + ")";
+            }
+        }
+    }
+
+    void SetDiceClickable(bool clickable)
+    {
+        foreach (var b in diceButtons)
+        {
+            b.interactable = clickable;
+        }
+
+        RefreshSkillButtons();
+    }
+
+    // ---------- [B-3] 특수 행동 창 ----------
+
+    public void OnSpecialButton()
+    {
+        if (!CanAct()) return;
+
+        specialPage = 0;
+        BuildSpecialPage();
+        ShowOnly(specialPopup);
+    }
+
+    public void OnSpecialClose()
+    {
+        ShowOnly(null);
+    }
+
+    public void OnSpecialNextPage()
+    {
+        int pages = Mathf.Max(1, Mathf.CeilToInt(SpecialEntries().Count / (float)SpecialPageSize));
+        specialPage = (specialPage + 1) % pages;
+        BuildSpecialPage();
+    }
+
+    class SpecialEntry
+    {
+        public string label;
+        public bool enabled;
+        public Action onClick;
+    }
+
+    // 창에 들어가는 순서: 스킬 칸 2개 → 가만히 있기 → 도발하기 → 귀막기 → 호흡참기 → 입막기 → 음식먹기
+    List<SpecialEntry> SpecialEntries()
+    {
+        var list = new List<SpecialEntry>();
+
+        foreach (var skill in Engine.EquippedSkills)
+        {
+            bool afterRoll = skill.timing == SkillTiming.AfterRoll;
+            list.Add(new SpecialEntry
+            {
+                label = skill.skillName + " (기력 " + skill.energyCost + ")" + (afterRoll ? "\n<size=70%>공격 중 주사위를 굴린 뒤 사용</size>" : ""),
+                enabled = false,   // 첫 출시 임시 스킬은 모두 굴린 뒤 사용 (Turn 스킬이 생기면 여기서 사용)
+                onClick = null
+            });
+        }
+
+        foreach (var action in new[] { SpecialAction.Wait, SpecialAction.Taunt, SpecialAction.CoverEars,
+                                       SpecialAction.HoldBreath, SpecialAction.CoverMouth, SpecialAction.EatFood })
+        {
+            var a = action;
+            string label = DisplayNames.Special(a);
+
+            if (a == SpecialAction.EatFood) label += " (" + FoodCount() + "개)";
+            if (a == SpecialAction.Taunt) label += Engine.TauntUsedThisTurn ? "\n<size=70%>이번 턴 사용함</size>" : "\n<size=70%>턴을 쓰지 않음</size>";
+
+            list.Add(new SpecialEntry { label = label, enabled = Engine.CanSpecial(a), onClick = () => OnSpecialChosen(a) });
+        }
+
+        return list;
+    }
+
+    int FoodCount()
+    {
+        int n = 0;
+
+        if (database == null) return 0;
+
+        foreach (var stack in Engine.player.items)
+        {
+            var item = database.FindItem(stack.itemId);
+            if (item != null && item.type == ItemType.Consumable) n += stack.count;
+        }
+
+        return n;
+    }
+
+    void BuildSpecialPage()
+    {
+        foreach (var b in specialItems)
+        {
+            if (b != null)
+            {
+                b.gameObject.SetActive(false);   // Destroy는 프레임 끝에 지워지므로 먼저 숨김
+                Destroy(b.gameObject);
+            }
+        }
+
+        specialItems.Clear();
+        specialItemTemplate.gameObject.SetActive(false);
+
+        var entries = SpecialEntries();
+        int pages = Mathf.Max(1, Mathf.CeilToInt(entries.Count / (float)SpecialPageSize));
+        specialPage = Mathf.Clamp(specialPage, 0, pages - 1);
+
+        for (int i = specialPage * SpecialPageSize; i < Mathf.Min(entries.Count, (specialPage + 1) * SpecialPageSize); i++)
+        {
+            var entry = entries[i];
+            var b = Instantiate(specialItemTemplate, specialItemRoot);
+            b.name = "Special_" + i;
+            b.GetComponentInChildren<TMP_Text>(true).text = entry.label;
+            b.interactable = entry.enabled;
+
+            if (entry.onClick != null)
+            {
+                var click = entry.onClick;
+                b.onClick.AddListener(() => click());
+            }
+
+            b.gameObject.SetActive(true);
+            specialItems.Add(b);
+        }
+
+        specialPageText.text = (specialPage + 1) + "/" + pages;
+        specialNextButton.gameObject.SetActive(pages > 1);
+    }
+
+    void OnSpecialChosen(SpecialAction action)
+    {
+        if (!CanAct() || !Engine.CanSpecial(action)) return;
+
+        Engine.Special(action);
+
+        if (action == SpecialAction.Taunt)
+        {
+            // 도발은 턴을 쓰지 않음: 창을 닫고 같은 턴에 다른 행동을 고른다
+            Refresh();
+            ShowNewMessages(null);
+            ShowOnly(null);
+            return;
+        }
+
         AfterAction();
     }
 
@@ -360,11 +597,17 @@ public class BattleController : MonoBehaviour
         defensePopup.SetActive(panel == defensePopup);
         fleePopup.SetActive(panel == fleePopup);
         resultPopup.SetActive(panel == resultPopup);
+
+        if (specialPopup != null)
+        {
+            specialPopup.SetActive(panel == specialPopup);
+        }
+
         actionButtons.SetActive(panel == null);
 
         if (panel == null && Engine != null)
         {
-            specialButton.interactable = false;   // B-3에서 특수 행동 창
+            specialButton.interactable = Engine.Outcome == BattleOutcome.None;
         }
     }
 
@@ -398,6 +641,23 @@ public class BattleController : MonoBehaviour
         }
 
         effectsText.text = sb.ToString();
+
+        if (monsterEffectsText != null)
+        {
+            var ms = new System.Text.StringBuilder();
+
+            foreach (var e in Engine.monsterEffects)
+            {
+                ms.Append(e.data.effectName).Append(" (").Append(e.turnsLeft).Append("턴)\n");
+            }
+
+            if (Engine.MonsterReflecting)
+            {
+                ms.Append("반사 자세\n");
+            }
+
+            monsterEffectsText.text = ms.ToString();
+        }
     }
 
     void ShowNewMessages(string fallback)
@@ -436,6 +696,7 @@ public class BattleController : MonoBehaviour
         }
 
         diceTexts.Clear();
+        diceButtons.Clear();
         diceTemplate.SetActive(false);
 
         for (int i = 0; i < count; i++)
@@ -444,14 +705,29 @@ public class BattleController : MonoBehaviour
             die.name = "Die_" + i;
             die.SetActive(true);
             diceTexts.Add(die.GetComponentInChildren<TMP_Text>(true));
+
+            var button = die.GetComponent<Button>();
+
+            if (button != null)
+            {
+                int index = i;
+                button.onClick.AddListener(() => OnDieClicked(index));
+                button.interactable = false;
+                diceButtons.Add(button);
+            }
         }
     }
+
+    static readonly Color LockedDieColor = new Color(1f, 0.85f, 0.3f);
 
     void SetDiceFaces(DiceRoll roll)
     {
         for (int i = 0; i < diceTexts.Count; i++)
         {
             diceTexts[i].text = roll != null && i < roll.faces.Length ? roll.faces[i].ToString() : "?";
+
+            // 고정된 주사위(이번 공격에 고정 값으로 나온 것)는 노란 글자
+            diceTexts[i].color = roll != null && roll.lockedIndex == i ? LockedDieColor : new Color(0.15f, 0.15f, 0.15f);
         }
     }
 

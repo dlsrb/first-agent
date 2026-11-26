@@ -28,7 +28,7 @@ public class BattleEngineTests
     public void SetUp()
     {
         settings = ScriptableObject.CreateInstance<BattleSettings>();
-        taunt = Effect("taunt", 3, atk: 30, def: -30);
+        taunt = Effect("taunt", 3, atk: 10, def: -30);
         morale = Effect("morale", 3, atk: -30, blockedBy: SpecialAction.CoverEars);
         poison = Effect("poison", 3, dpt: 5, blockedBy: SpecialAction.HoldBreath);
         cough = Effect("cough", 2, atk: -20, chance: -30, blockedBy: SpecialAction.CoverMouth);
@@ -254,21 +254,36 @@ public class BattleEngineTests
     }
 
     [Test]
-    public void Taunt_MonsterDefenseMinus30_AttackPlus30_NoStack_ThreeTurns()
+    public void Taunt_FreeAction_DefenseMinus30_AttackPlus10()
     {
         var p = Player(hp: 1000, def: 0);
         var e = Engine(p, Monster(atk: 20, def: 50));
-        e.Special(SpecialAction.Taunt);        // 이번 턴 괴이 공격부터 26
-        Assert.AreEqual(1000 - 26, p.currentHp);
+        e.Special(SpecialAction.Taunt);        // 턴을 쓰지 않음
+        Assert.AreEqual(1, e.Turn);
+        Assert.AreEqual(1000, p.currentHp, "도발만으로는 괴이가 행동하지 않음");
         Assert.AreEqual(35, e.MonsterDefense);
-        Assert.AreEqual(26, e.MonsterAttack);
+        Assert.AreEqual(22, e.MonsterAttack);
+        Assert.IsFalse(e.CanSpecial(SpecialAction.Taunt), "한 턴에 한 번");
 
-        e.Special(SpecialAction.Taunt);        // 다시 걸어도 중첩 없음
+        Attack(e, 3, 5);                       // 같은 턴에 공격: 13 × 100/135 = 9.6 → 10, 괴이 반격 22
+        Assert.AreEqual(1000 - 10, e.MonsterHp);
+        Assert.AreEqual(1000 - 22, p.currentHp);
+        Assert.AreEqual(2, e.Turn);
+    }
+
+    [Test]
+    public void Taunt_NoStack_ThreeTurnsIncludingTauntTurn()
+    {
+        var p = Player(hp: 1000, def: 0);
+        var e = Engine(p, Monster(atk: 20, def: 50));
+        e.Special(SpecialAction.Taunt); e.Special(SpecialAction.Wait);   // 1턴
+        e.Special(SpecialAction.Taunt);                                  // 2턴: 다시 걸어도 중첩 없음
         Assert.AreEqual(1, e.monsterEffects.Count);
-        Assert.AreEqual(26, e.MonsterAttack);
-
-        e.Special(SpecialAction.Wait);
-        e.Special(SpecialAction.Wait);         // 다시 건 턴 포함 3턴 뒤 끝
+        Assert.AreEqual(22, e.MonsterAttack);
+        e.Special(SpecialAction.Wait);                                   // 2턴 끝 (남은 2)
+        e.Special(SpecialAction.Wait);                                   // 3턴 끝 (남은 1)
+        Assert.AreEqual(1, e.monsterEffects.Count);
+        e.Special(SpecialAction.Wait);                                   // 4턴 끝 → 끝
         Assert.AreEqual(0, e.monsterEffects.Count);
         Assert.AreEqual(20, e.MonsterAttack);
     }

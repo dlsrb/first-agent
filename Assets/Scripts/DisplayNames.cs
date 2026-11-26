@@ -25,6 +25,21 @@ public static class DisplayNames
         }
     }
 
+    // [B-3] 특수 행동 이름
+    public static string Special(SpecialAction action)
+    {
+        switch (action)
+        {
+            case SpecialAction.Wait: return "가만히 있기";
+            case SpecialAction.Taunt: return "도발하기";
+            case SpecialAction.CoverEars: return "귀막기";
+            case SpecialAction.HoldBreath: return "호흡참기";
+            case SpecialAction.CoverMouth: return "입막기";
+            case SpecialAction.EatFood: return "음식먹기";
+            default: return action.ToString();
+        }
+    }
+
     // 지도 정보창 유형 줄
     public static string PlaceTypeLine(PlaceData.PlaceType type)
     {
