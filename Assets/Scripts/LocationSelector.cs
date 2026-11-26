@@ -10,25 +10,28 @@ public class LocationSelector : MonoBehaviour
 
     private GameObject selectedLocation;
 
-    [Header("Àå¼Ò Á¤º¸ UI")]
+    [Header("ì¥ì†Œ ì •ë³´ UI")]
     public GameObject locationInfoPanel;
     public TMP_Text locationNameText;
     public TMP_Text locationTypeText;
     public TMP_Text locationDescriptionText;
 
-    [Header("Àå¼Ò ³»ºÎ UI")]
+    [Header("ì¥ì†Œ ë‚´ë¶€ UI")]
     public GameObject placeInteriorPanel;
     public TMP_Text placeNameText;
     public TMP_Text placeDescriptionText;
 
-    [Header("»óÈ£ÀÛ¿ë ½Ã½ºÅÛ")]
+    [Header("ìƒí˜¸ì‘ìš© ì‹œìŠ¤í…œ")]
     public InteractionController interactionController;
 
-    [Header("Ä«¸Ş¶ó ¼³Á¤")]
+    [Header("ì¹´ë©”ë¼ ì„¤ì •")]
     public float zoomedCameraSize = 2.5f;
     public float cameraMoveSpeed = 5f;
 
-    [Header("ÆĞ³Î ¼³Á¤")]
+    [Tooltip("í™•ëŒ€ ì‹œ ì¹´ë©”ë¼ë¥¼ ì¥ì†Œ ê¸°ì¤€ ì˜¤ë¥¸ìª½(+)ìœ¼ë¡œ ì˜®ê¸¸ ê±°ë¦¬(ì›”ë“œ ë‹¨ìœ„). ì–‘ìˆ˜ë©´ ì¥ì†Œê°€ í™”ë©´ ì™¼ìª½ì— ë³´ì—¬ ì˜¤ë¥¸ìª½ ì •ë³´ì°½ ìë¦¬ê°€ ìƒê¹€. 0ì´ë©´ ì¥ì†Œê°€ í™”ë©´ ì¤‘ì•™")]
+    public float zoomedCameraOffsetX = 0f;
+
+    [Header("íŒ¨ë„ ì„¤ì •")]
     public float panelOffset = 50f;
 
     private Camera mainCamera;
@@ -40,13 +43,13 @@ public class LocationSelector : MonoBehaviour
     private Vector3 targetCameraPosition;
     private float targetCameraSize;
 
-    // Ã³À½ Ä«¸Ş¶ó À§Ä¡¿Í È®´ë°ª ÀúÀå
+    // ì²˜ìŒ ì¹´ë©”ë¼ ìœ„ì¹˜ì™€ í™•ëŒ€ê°’ ì €ì¥
     private Vector3 initialCameraPosition;
     private float initialCameraSize;
 
     void Start()
     {
-        // °ÔÀÓ ½ÃÀÛ ½Ã Áö¿ª Á¤º¸ ÆĞ³Î ¼û±â±â
+        // ê²Œì„ ì‹œì‘ ì‹œ ì§€ì—­ ì •ë³´ íŒ¨ë„ ìˆ¨ê¸°ê¸°
         if (locationInfoPanel != null)
         {
             locationInfoPanel.SetActive(false);
@@ -64,18 +67,18 @@ public class LocationSelector : MonoBehaviour
             }
         }
 
-        // °ÔÀÓ ½ÃÀÛ ½Ã Àå¼Ò ³»ºÎ È­¸é ¼û±â±â
+        // ê²Œì„ ì‹œì‘ ì‹œ ì¥ì†Œ ë‚´ë¶€ í™”ë©´ ìˆ¨ê¸°ê¸°
         if (placeInteriorPanel != null)
         {
             placeInteriorPanel.SetActive(false);
         }
 
-        // Ä«¸Ş¶ó ÃÊ±â ¼³Á¤
+        // ì¹´ë©”ë¼ ì´ˆê¸° ì„¤ì •
         mainCamera = Camera.main;
 
         if (mainCamera != null)
         {
-            // ÃÖÃÊ Ä«¸Ş¶ó À§Ä¡¿Í È®´ë°ª ÀúÀå
+            // ìµœì´ˆ ì¹´ë©”ë¼ ìœ„ì¹˜ì™€ í™•ëŒ€ê°’ ì €ì¥
             initialCameraPosition = mainCamera.transform.position;
             initialCameraSize = mainCamera.orthographicSize;
 
@@ -83,7 +86,7 @@ public class LocationSelector : MonoBehaviour
             targetCameraSize = initialCameraSize;
         }
 
-        // ±âÁ¸ Áö¿ª »ö»ó ÀúÀå ·ÎÁ÷ À¯Áö
+        // ê¸°ì¡´ ì§€ì—­ ìƒ‰ìƒ ì €ì¥ ë¡œì§ ìœ ì§€
         SpriteRenderer[] locations =
             GetComponentsInChildren<SpriteRenderer>();
 
@@ -95,7 +98,7 @@ public class LocationSelector : MonoBehaviour
 
     void Update()
     {
-        // Àå¼Ò ³»ºÎ È­¸éÀÌ ¿­·Á ÀÖÀ¸¸é Áöµµ Å¬¸¯ ¹æÁö
+        // ì¥ì†Œ ë‚´ë¶€ í™”ë©´ì´ ì—´ë ¤ ìˆìœ¼ë©´ ì§€ë„ í´ë¦­ ë°©ì§€
         if (placeInteriorPanel != null &&
             placeInteriorPanel.activeSelf)
         {
@@ -104,7 +107,7 @@ public class LocationSelector : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            // UI ¹öÆ°ÀÌ³ª ÆĞ³Î Å¬¸¯ ½Ã Áöµµ ¼±ÅÃ ¹æÁö
+            // UI ë²„íŠ¼ì´ë‚˜ íŒ¨ë„ í´ë¦­ ì‹œ ì§€ë„ ì„ íƒ ë°©ì§€
             if (EventSystem.current != null &&
                 EventSystem.current.IsPointerOverGameObject())
             {
@@ -140,14 +143,14 @@ public class LocationSelector : MonoBehaviour
             return;
         }
 
-        // Ä«¸Ş¶ó ºÎµå·´°Ô ÀÌµ¿
+        // ì¹´ë©”ë¼ ë¶€ë“œëŸ½ê²Œ ì´ë™
         mainCamera.transform.position = Vector3.Lerp(
             mainCamera.transform.position,
             targetCameraPosition,
             cameraMoveSpeed * Time.deltaTime
         );
 
-        // Ä«¸Ş¶ó È®´ë ¹× Ãà¼Ò
+        // ì¹´ë©”ë¼ í™•ëŒ€ ë° ì¶•ì†Œ
         if (mainCamera.orthographic)
         {
             mainCamera.orthographicSize = Mathf.Lerp(
@@ -157,7 +160,7 @@ public class LocationSelector : MonoBehaviour
             );
         }
 
-        // ¼±ÅÃµÈ Áö¿ªÀÌ ÀÖÀ¸¸é ÆĞ³Î À§Ä¡ °»½Å
+        // ì„ íƒëœ ì§€ì—­ì´ ìˆìœ¼ë©´ íŒ¨ë„ ìœ„ì¹˜ ê°±ì‹ 
         if (selectedLocation != null &&
             locationInfoPanel != null &&
             locationInfoPanel.activeSelf)
@@ -168,7 +171,7 @@ public class LocationSelector : MonoBehaviour
 
     void SelectLocation(GameObject location)
     {
-        // ÀÌÀü¿¡ ¼±ÅÃÇÑ Áö¿ªÀÇ »ö»ó º¹¿ø
+        // ì´ì „ì— ì„ íƒí•œ ì§€ì—­ì˜ ìƒ‰ìƒ ë³µì›
         if (selectedLocation != null)
         {
             SpriteRenderer previousRenderer =
@@ -181,7 +184,7 @@ public class LocationSelector : MonoBehaviour
             }
         }
 
-        // »õ Áö¿ª ¼±ÅÃ
+        // ìƒˆ ì§€ì—­ ì„ íƒ
         selectedLocation = location;
 
         SpriteRenderer currentRenderer =
@@ -192,13 +195,13 @@ public class LocationSelector : MonoBehaviour
             currentRenderer.color = Color.blue;
         }
 
-        // ¼±ÅÃÇÑ Áö¿ªÀÇ À§Ä¡·Î Ä«¸Ş¶ó ÀÌµ¿
+        // ì„ íƒí•œ ì§€ì—­ì˜ ìœ„ì¹˜ë¡œ ì¹´ë©”ë¼ ì´ë™
         if (mainCamera != null)
         {
             Vector3 locationPosition = location.transform.position;
 
             targetCameraPosition = new Vector3(
-                locationPosition.x,
+                locationPosition.x + zoomedCameraOffsetX,
                 locationPosition.y,
                 initialCameraPosition.z
             );
@@ -206,7 +209,7 @@ public class LocationSelector : MonoBehaviour
             targetCameraSize = zoomedCameraSize;
         }
 
-        // ¼±ÅÃÇÑ Áö¿ªÀÇ µ¥ÀÌÅÍ °¡Á®¿À±â
+        // ì„ íƒí•œ ì§€ì—­ì˜ ë°ì´í„° ê°€ì ¸ì˜¤ê¸°
         LocationData data =
             location.GetComponent<LocationData>();
 
@@ -234,14 +237,14 @@ public class LocationSelector : MonoBehaviour
                     data.description;
             }
 
-            Debug.Log("Àå¼Ò ÀÌ¸§: " + data.locationName);
-            Debug.Log("Àå¼Ò À¯Çü: " + data.locationType);
-            Debug.Log("Àå¼Ò ¼³¸í: " + data.description);
+            Debug.Log("ì¥ì†Œ ì´ë¦„: " + data.locationName);
+            Debug.Log("ì¥ì†Œ ìœ í˜•: " + data.locationType);
+            Debug.Log("ì¥ì†Œ ì„¤ëª…: " + data.description);
         }
         else
         {
             Debug.LogWarning(
-                location.name + "¿¡ LocationData°¡ ¾ø½À´Ï´Ù."
+                location.name + "ì— LocationDataê°€ ì—†ìŠµë‹ˆë‹¤."
             );
         }
     }
@@ -256,13 +259,13 @@ public class LocationSelector : MonoBehaviour
             return;
         }
 
-        // ¼±ÅÃÇÑ Áö¿ªÀÇ È­¸é ÁÂÇ¥ °è»ê
+        // ì„ íƒí•œ ì§€ì—­ì˜ í™”ë©´ ì¢Œí‘œ ê³„ì‚°
         Vector3 screenPosition =
             mainCamera.WorldToScreenPoint(
                 selectedLocation.transform.position
             );
 
-        // È­¸é ÁÂÇ¥¸¦ Canvas ÁÂÇ¥·Î º¯È¯
+        // í™”ë©´ ì¢Œí‘œë¥¼ Canvas ì¢Œí‘œë¡œ ë³€í™˜
         Vector2 localPoint;
 
         bool converted =
@@ -336,14 +339,14 @@ public class LocationSelector : MonoBehaviour
     {
         if (selectedLocation == null)
         {
-            Debug.LogWarning("¸ÕÀú ÁøÀÔÇÒ Áö¿ªÀ» ¼±ÅÃÇÏ¼¼¿ä.");
+            Debug.LogWarning("ë¨¼ì € ì§„ì…í•  ì§€ì—­ì„ ì„ íƒí•˜ì„¸ìš”.");
             return;
         }
 
         if (placeInteriorPanel == null)
         {
             Debug.LogWarning(
-                "PlaceInteriorPanelÀÌ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù."
+                "PlaceInteriorPanelì´ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤."
             );
             return;
         }
@@ -354,67 +357,67 @@ public class LocationSelector : MonoBehaviour
         if (data == null)
         {
             Debug.LogWarning(
-                "¼±ÅÃÇÑ Áö¿ª¿¡ LocationData°¡ ¾ø½À´Ï´Ù."
+                "ì„ íƒí•œ ì§€ì—­ì— LocationDataê°€ ì—†ìŠµë‹ˆë‹¤."
             );
             return;
         }
 
-        // ÇöÀç Àå¼Ò µ¥ÀÌÅÍ¸¦ »óÈ£ÀÛ¿ë ½Ã½ºÅÛ¿¡ Àü´Ş
+        // í˜„ì¬ ì¥ì†Œ ë°ì´í„°ë¥¼ ìƒí˜¸ì‘ìš© ì‹œìŠ¤í…œì— ì „ë‹¬
         if (interactionController != null)
         {
             interactionController.SetLocationData(data);
         }
         else
         {
-            Debug.LogWarning("InteractionController°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogWarning("InteractionControllerê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
         }
 
-        // Àå¼Ò ÀÌ¸§ Ç¥½Ã
+        // ì¥ì†Œ ì´ë¦„ í‘œì‹œ
         if (placeNameText != null)
         {
             placeNameText.text = data.locationName;
         }
 
-        // Àå¼Ò ¼³¸í Ç¥½Ã
+        // ì¥ì†Œ ì„¤ëª… í‘œì‹œ
         if (placeDescriptionText != null)
         {
             placeDescriptionText.text = data.description;
         }
 
-        // Áöµµ Á¤º¸ ÆĞ³Î ¼û±â±â
+        // ì§€ë„ ì •ë³´ íŒ¨ë„ ìˆ¨ê¸°ê¸°
         if (locationInfoPanel != null)
         {
             locationInfoPanel.SetActive(false);
         }
 
-        // Àå¼Ò ³»ºÎ È­¸é Ç¥½Ã
+        // ì¥ì†Œ ë‚´ë¶€ í™”ë©´ í‘œì‹œ
         placeInteriorPanel.SetActive(true);
 
-        Debug.Log(data.locationName + "¿¡ ÁøÀÔÇß½À´Ï´Ù.");
+        Debug.Log(data.locationName + "ì— ì§„ì…í–ˆìŠµë‹ˆë‹¤.");
     }
 
     public void ExitPlace()
     {
-        // Àå¼Ò ³»ºÎ È­¸é ¼û±â±â
+        // ì¥ì†Œ ë‚´ë¶€ í™”ë©´ ìˆ¨ê¸°ê¸°
         if (placeInteriorPanel != null)
         {
             placeInteriorPanel.SetActive(false);
         }
 
-        // Áöµµ Á¤º¸ ÆĞ³Î ´Ù½Ã Ç¥½Ã
+        // ì§€ë„ ì •ë³´ íŒ¨ë„ ë‹¤ì‹œ í‘œì‹œ
         if (locationInfoPanel != null &&
             selectedLocation != null)
         {
             locationInfoPanel.SetActive(true);
         }
 
-        Debug.Log("Áöµµ È­¸éÀ¸·Î µ¹¾Æ¿Ô½À´Ï´Ù.");
+        Debug.Log("ì§€ë„ í™”ë©´ìœ¼ë¡œ ëŒì•„ì™”ìŠµë‹ˆë‹¤.");
     }
 
-    // Áöµµ Á¤º¸ ÆĞ³Î ´İ±â ¹× Ä«¸Ş¶ó ÃÊ±âÈ­
+    // ì§€ë„ ì •ë³´ íŒ¨ë„ ë‹«ê¸° ë° ì¹´ë©”ë¼ ì´ˆê¸°í™”
     public void CloseLocationInfo()
     {
-        // ¼±ÅÃÇÑ Àå¼ÒÀÇ »ö»ó º¹¿ø
+        // ì„ íƒí•œ ì¥ì†Œì˜ ìƒ‰ìƒ ë³µì›
         if (selectedLocation != null)
         {
             SpriteRenderer renderer =
@@ -428,19 +431,19 @@ public class LocationSelector : MonoBehaviour
             }
         }
 
-        // ¼±ÅÃ »óÅÂ ÇØÁ¦
+        // ì„ íƒ ìƒíƒœ í•´ì œ
         selectedLocation = null;
 
-        // Á¤º¸ ÆĞ³Î ´İ±â
+        // ì •ë³´ íŒ¨ë„ ë‹«ê¸°
         if (locationInfoPanel != null)
         {
             locationInfoPanel.SetActive(false);
         }
 
-        // Ä«¸Ş¶ó ÃÊ±â À§Ä¡¿Í È®´ë°ªÀ¸·Î º¹±Í
+        // ì¹´ë©”ë¼ ì´ˆê¸° ìœ„ì¹˜ì™€ í™•ëŒ€ê°’ìœ¼ë¡œ ë³µê·€
         targetCameraPosition = initialCameraPosition;
         targetCameraSize = initialCameraSize;
 
-        Debug.Log("ÀüÃ¼ Áöµµ È­¸éÀ¸·Î µ¹¾Æ°©´Ï´Ù.");
+        Debug.Log("ì „ì²´ ì§€ë„ í™”ë©´ìœ¼ë¡œ ëŒì•„ê°‘ë‹ˆë‹¤.");
     }
 }
