@@ -11,47 +11,47 @@ public class LocationData : MonoBehaviour
     }
 
 
-    [Header("Àå¼Ò Á¤º¸")]
-    public string locationName = "»õ·Î¿î Àå¼Ò";
+    [Header("ì¥ì†Œ ì •ë³´")]
+    [Tooltip("ì§„í–‰ ìƒíƒœ ì €ì¥ìš© ê³ ìœ  ID (ì˜ë¬¸ ì†Œë¬¸ì, ì¥ì†Œë§ˆë‹¤ ë‹¬ë¼ì•¼ í•¨). ì¶œì‹œ í›„ì—ëŠ” ë°”ê¾¸ì§€ ë§ ê²ƒ - ì„¸ì´ë¸Œê°€ ê¹¨ì§")]
+    public string locationId = "";
+
+    public string locationName = "ìƒˆë¡œìš´ ì¥ì†Œ";
 
     public LocationType locationType = LocationType.Normal;
 
     [TextArea(2, 5)]
-    public string description = "Àå¼Ò ¼³¸íÀ» ÀÔ·ÂÇÏ¼¼¿ä.";
+    public string description = "ì¥ì†Œ ì„¤ëª…ì„ ì…ë ¥í•˜ì„¸ìš”.";
 
-    [Header("»óÈ£ÀÛ¿ë °á°ú")]
-
-    [TextArea(2, 5)]
-    public string shelfResult = "ÁÖº¯À» Á¶»çÇß´Ù.";
+    [Header("ìƒí˜¸ì‘ìš© ê²°ê³¼")]
 
     [TextArea(2, 5)]
-    public string clerkResult = "»ó´ë¹æ°ú ´ëÈ­¸¦ ³ª´³´Ù.";
+    public string shelfResult = "ì£¼ë³€ì„ ì¡°ì‚¬í–ˆë‹¤.";
 
     [TextArea(2, 5)]
-    public string suspiciousPersonResult = "¼ö»óÇÑ ÀÎ¹°À» Á¶»çÇß´Ù.";
-
-    [Header("Á¡¿ø ´ëÈ­ ¼±ÅÃÁö")]
-
-    // [9ÀÏÂ÷ Ãß°¡] ´ëÈ­Ã¢¿¡ Ç¥½ÃÇÒ NPC ÀÌ¸§
-    public string npcName = "Á¡¿ø";
-
-    public string choiceAText = "A. ¿äÁò ÀÌ»óÇÑ ÀÏ ¾ø¾ú¾î¿ä?";
+    public string clerkResult = "ìƒëŒ€ë°©ê³¼ ëŒ€í™”ë¥¼ ë‚˜ëˆ´ë‹¤.";
 
     [TextArea(2, 5)]
-    public string choiceAResult = "Á¡¿øÀº Àá½Ã ¸Ó¹µ°Å¸®´Ù °í°³¸¦ Àú¾ú´Ù.";
+    public string suspiciousPersonResult = "ìˆ˜ìƒí•œ ì¸ë¬¼ì„ ì¡°ì‚¬í–ˆë‹¤.";
 
-    public string choiceBText = "B. ±×³É µÑ·¯º¼°Ô¿ä.";
+    [Header("ì ì› ëŒ€í™” ì„ íƒì§€")]
+
+    // [9ì¼ì°¨ ì¶”ê°€] ëŒ€í™”ì°½ì— í‘œì‹œí•  NPC ì´ë¦„
+    public string npcName = "ì ì›";
+
+    public string choiceAText = "A. ìš”ì¦˜ ì´ìƒí•œ ì¼ ì—†ì—ˆì–´ìš”?";
 
     [TextArea(2, 5)]
-    public string choiceBResult = "Á¡¿øÀº °í°³¸¦ ²ô´öÀÌ°í ÇÏ´ø ÀÏÀ» °è¼ÓÇß´Ù.";
+    public string choiceAResult = "ì ì›ì€ ì ì‹œ ë¨¸ë­‡ê±°ë¦¬ë‹¤ ê³ ê°œë¥¼ ì €ì—ˆë‹¤.";
 
-    // [10ÀÏÂ÷ Ãß°¡] ÀÌ¹Ì ¼±ÅÃÁö¸¦ °í¸¥ µÚ ´Ù½Ã ¸»À» °É¾úÀ» ¶§ÀÇ ´ë»ç
+    public string choiceBText = "B. ê·¸ëƒ¥ ë‘˜ëŸ¬ë³¼ê²Œìš”.";
+
     [TextArea(2, 5)]
-    public string clerkRepeatDialogue = "\"¶Ç ¿À¼Ì³×¿ä. ÇÊ¿äÇÑ °Ô ÀÖÀ¸¸é ¸»¾¸ÇÏ¼¼¿ä.\"";
+    public string choiceBResult = "ì ì›ì€ ê³ ê°œë¥¼ ë„ë•ì´ê³  í•˜ë˜ ì¼ì„ ê³„ì†í–ˆë‹¤.";
 
-    // [10ÀÏÂ÷ Ãß°¡] »óÅÂ: ÀÌ Àå¼Ò¿¡¼­ Á¡¿ø ¼±ÅÃÁö¸¦ ÀÌ¹Ì °ñ¶ú´ÂÁö
-    // Inspector¿¡ Ç¥½ÃµÇÁö ¾Ê°í, Play¸¦ ´Ù½Ã ½ÃÀÛÇÏ¸é false·Î µ¹¾Æ°£´Ù
-    [System.NonSerialized]
-    public bool hasChosenClerkChoice = false;
+    // [10ì¼ì°¨ ì¶”ê°€] ì´ë¯¸ ì„ íƒì§€ë¥¼ ê³ ë¥¸ ë’¤ ë‹¤ì‹œ ë§ì„ ê±¸ì—ˆì„ ë•Œì˜ ëŒ€ì‚¬
+    [TextArea(2, 5)]
+    public string clerkRepeatDialogue = "\"ë˜ ì˜¤ì…¨ë„¤ìš”. í•„ìš”í•œ ê²Œ ìˆìœ¼ë©´ ë§ì”€í•˜ì„¸ìš”.\"";
+
+    // [Aë‹¨ê³„] ì§„í–‰ ìƒíƒœ(ì ì› ì„ íƒ ì—¬ë¶€ ë“±)ëŠ” GameStateManagerë¡œ ì´ë™
 
 }

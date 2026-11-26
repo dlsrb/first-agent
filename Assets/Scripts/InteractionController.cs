@@ -3,139 +3,151 @@ using TMPro;
 
 public class InteractionController : MonoBehaviour
 {
-    [Header("»óÈ£ÀÛ¿ë °á°ú UI")]
+    [Header("ìƒí˜¸ì‘ìš© ê²°ê³¼ UI")]
     public TMP_Text interactionResultText;
 
-    // [8ÀÏÂ÷ Ãß°¡] Á¡¿ø ´ëÈ­ ¼±ÅÃÁö UI
-    [Header("¼±ÅÃÁö UI")]
+    // [8ì¼ì°¨ ì¶”ê°€] ì ì› ëŒ€í™” ì„ íƒì§€ UI
+    [Header("ì„ íƒì§€ UI")]
     public GameObject choicePanel;
     public TMP_Text choiceAButtonText;
     public TMP_Text choiceBButtonText;
 
-    // [9ÀÏÂ÷ Ãß°¡] ´ëÈ­Ã¢ UI
-    [Header("´ëÈ­Ã¢ UI")]
+    // [9ì¼ì°¨ ì¶”ê°€] ëŒ€í™”ì°½ UI
+    [Header("ëŒ€í™”ì°½ UI")]
     public GameObject dialoguePanel;
     public TMP_Text npcNameText;
     public TMP_Text dialogueText;
 
-    // ÇöÀç Àå¼Ò µ¥ÀÌÅÍ
+    // í˜„ì¬ ì¥ì†Œ ë°ì´í„°
     private LocationData currentLocationData;
 
-    // Àå¼Ò µ¥ÀÌÅÍ Àü´Ş¹Ş±â
+    // ì¥ì†Œ ë°ì´í„° ì „ë‹¬ë°›ê¸°
     public void SetLocationData(LocationData data)
     {
         currentLocationData = data;
 
-        // »õ·Î¿î Àå¼Ò¿¡ µé¾î°¡¸é ÀÌÀü °á°ú ÃÊ±âÈ­
+        // ìƒˆë¡œìš´ ì¥ì†Œì— ë“¤ì–´ê°€ë©´ ì´ì „ ê²°ê³¼ ì´ˆê¸°í™”
         if (interactionResultText != null)
         {
             interactionResultText.text = "";
         }
 
-        // [8ÀÏÂ÷ Ãß°¡] »õ·Î¿î Àå¼Ò¿¡ µé¾î°¡¸é ÀÌÀü ¼±ÅÃÁö ¼û±â±â
+        // [8ì¼ì°¨ ì¶”ê°€] ìƒˆë¡œìš´ ì¥ì†Œì— ë“¤ì–´ê°€ë©´ ì´ì „ ì„ íƒì§€ ìˆ¨ê¸°ê¸°
         HideChoices();
 
-        // [9ÀÏÂ÷ Ãß°¡] »õ·Î¿î Àå¼Ò¿¡ µé¾î°¡¸é ´ëÈ­Ã¢ ´İ±â
+        // [9ì¼ì°¨ ì¶”ê°€] ìƒˆë¡œìš´ ì¥ì†Œì— ë“¤ì–´ê°€ë©´ ëŒ€í™”ì°½ ë‹«ê¸°
         CloseDialogue();
     }
 
-    // Áø¿­´ë Á¶»ç
+    // ì§„ì—´ëŒ€ ì¡°ì‚¬
     public void InvestigateShelf()
     {
         if (currentLocationData == null)
         {
-            Debug.LogWarning("ÇöÀç Àå¼Ò µ¥ÀÌÅÍ°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogWarning("í˜„ì¬ ì¥ì†Œ ë°ì´í„°ê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
             return;
         }
 
-        // [8ÀÏÂ÷ Ãß°¡] ´Ù¸¥ Çàµ¿À» ÇÏ¸é ¼±ÅÃÁö ¼û±â±â
+        // [8ì¼ì°¨ ì¶”ê°€] ë‹¤ë¥¸ í–‰ë™ì„ í•˜ë©´ ì„ íƒì§€ ìˆ¨ê¸°ê¸°
         HideChoices();
 
         DisplayResult(currentLocationData.shelfResult);
     }
 
-    // Á¡¿ø°ú ´ëÈ­
+    // ì ì›ê³¼ ëŒ€í™”
     public void TalkToClerk()
     {
         if (currentLocationData == null)
         {
-            Debug.LogWarning("ÇöÀç Àå¼Ò µ¥ÀÌÅÍ°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogWarning("í˜„ì¬ ì¥ì†Œ ë°ì´í„°ê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
             return;
         }
 
-        // [10ÀÏÂ÷ º¯°æ] ÀÌ¹Ì ¼±ÅÃÁö¸¦ °ñ¶úÀ¸¸é Àç¹æ¹® ´ë»ç¸¸ Ç¥½Ã
-        if (currentLocationData.hasChosenClerkChoice)
+        // [10ì¼ì°¨ ë³€ê²½] ì´ë¯¸ ì„ íƒì§€ë¥¼ ê³¨ëìœ¼ë©´ ì¬ë°©ë¬¸ ëŒ€ì‚¬ë§Œ í‘œì‹œ
+        // [Aë‹¨ê³„] ìƒíƒœëŠ” GameStateManagerì—ì„œ ì¡°íšŒ
+        if (GameStateManager.Instance.HasChosenClerkChoice(CurrentLocationId()))
         {
             OpenDialogue(currentLocationData.clerkRepeatDialogue);
             HideChoices();
         }
         else
         {
-            // [9ÀÏÂ÷ º¯°æ] °á°ú ÅØ½ºÆ® ´ë½Å ´ëÈ­Ã¢¿¡ ÀÌ¸§°ú ´ë»ç Ç¥½Ã
+            // [9ì¼ì°¨ ë³€ê²½] ê²°ê³¼ í…ìŠ¤íŠ¸ ëŒ€ì‹  ëŒ€í™”ì°½ì— ì´ë¦„ê³¼ ëŒ€ì‚¬ í‘œì‹œ
             OpenDialogue(currentLocationData.clerkResult);
 
-            // [8ÀÏÂ÷ Ãß°¡] Á¡¿ø ´ë»ç ÈÄ ¼±ÅÃÁö º¸¿©ÁÖ±â
+            // [8ì¼ì°¨ ì¶”ê°€] ì ì› ëŒ€ì‚¬ í›„ ì„ íƒì§€ ë³´ì—¬ì£¼ê¸°
             ShowChoices();
         }
     }
 
-    // ¼ö»óÇÑ »ç¶÷ Á¶»ç
+    // ìˆ˜ìƒí•œ ì‚¬ëŒ ì¡°ì‚¬
     public void InvestigateSuspiciousPerson()
     {
         if (currentLocationData == null)
         {
-            Debug.LogWarning("ÇöÀç Àå¼Ò µ¥ÀÌÅÍ°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogWarning("í˜„ì¬ ì¥ì†Œ ë°ì´í„°ê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
             return;
         }
 
-        // [8ÀÏÂ÷ Ãß°¡] ´Ù¸¥ Çàµ¿À» ÇÏ¸é ¼±ÅÃÁö ¼û±â±â
+        // [8ì¼ì°¨ ì¶”ê°€] ë‹¤ë¥¸ í–‰ë™ì„ í•˜ë©´ ì„ íƒì§€ ìˆ¨ê¸°ê¸°
         HideChoices();
 
         DisplayResult(currentLocationData.suspiciousPersonResult);
     }
 
-    // [8ÀÏÂ÷ Ãß°¡] ¼±ÅÃÁö A ¼±ÅÃ
+    // [8ì¼ì°¨ ì¶”ê°€] ì„ íƒì§€ A ì„ íƒ
     public void ChooseA()
     {
         if (currentLocationData == null)
         {
-            Debug.LogWarning("ÇöÀç Àå¼Ò µ¥ÀÌÅÍ°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogWarning("í˜„ì¬ ì¥ì†Œ ë°ì´í„°ê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
             return;
         }
 
-        // [10ÀÏÂ÷ Ãß°¡] ÀÌ Àå¼Ò¿¡¼­ ¼±ÅÃÇß´Ù´Â »óÅÂ ±â·Ï
-        currentLocationData.hasChosenClerkChoice = true;
+        // [10ì¼ì°¨ ì¶”ê°€] ì´ ì¥ì†Œì—ì„œ ì„ íƒí–ˆë‹¤ëŠ” ìƒíƒœ ê¸°ë¡
+        GameStateManager.Instance.MarkClerkChoice(CurrentLocationId());
 
-        // [9ÀÏÂ÷ º¯°æ] ´ëÈ­Ã¢À» ´İ°í °á°ú´Â °á°ú ÅØ½ºÆ®¿¡ Ç¥½Ã
+        // [9ì¼ì°¨ ë³€ê²½] ëŒ€í™”ì°½ì„ ë‹«ê³  ê²°ê³¼ëŠ” ê²°ê³¼ í…ìŠ¤íŠ¸ì— í‘œì‹œ
         CloseDialogue();
         DisplayResult(currentLocationData.choiceAResult);
     }
 
-    // [8ÀÏÂ÷ Ãß°¡] ¼±ÅÃÁö B ¼±ÅÃ
-    // [8ÀÏÂ÷ Ãß°¡] ¼±ÅÃÁö B ¼±ÅÃ
+    // [8ì¼ì°¨ ì¶”ê°€] ì„ íƒì§€ B ì„ íƒ
     public void ChooseB()
     {
         if (currentLocationData == null)
         {
-            Debug.LogWarning("ÇöÀç Àå¼Ò µ¥ÀÌÅÍ°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogWarning("í˜„ì¬ ì¥ì†Œ ë°ì´í„°ê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
             return;
         }
 
-        // [10ÀÏÂ÷ Ãß°¡] ÀÌ Àå¼Ò¿¡¼­ ¼±ÅÃÇß´Ù´Â »óÅÂ ±â·Ï
-        currentLocationData.hasChosenClerkChoice = true;
+        // [10ì¼ì°¨ ì¶”ê°€] ì´ ì¥ì†Œì—ì„œ ì„ íƒí–ˆë‹¤ëŠ” ìƒíƒœ ê¸°ë¡
+        GameStateManager.Instance.MarkClerkChoice(CurrentLocationId());
 
-        // [9ÀÏÂ÷ º¯°æ] ´ëÈ­Ã¢À» ´İ°í °á°ú´Â °á°ú ÅØ½ºÆ®¿¡ Ç¥½Ã
+        // [9ì¼ì°¨ ë³€ê²½] ëŒ€í™”ì°½ì„ ë‹«ê³  ê²°ê³¼ëŠ” ê²°ê³¼ í…ìŠ¤íŠ¸ì— í‘œì‹œ
         CloseDialogue();
         DisplayResult(currentLocationData.choiceBResult);
     }
 
-    // [9ÀÏÂ÷ Ãß°¡] ´ëÈ­Ã¢ ¿­±â
-    // [10ÀÏÂ÷ º¯°æ] º¸¿©ÁÙ ´ë»ç¸¦ ¹Ş¾Æ¼­ Ç¥½Ã
+    // [Aë‹¨ê³„] ìƒíƒœ í‚¤ë¡œ ì“¸ ì¥ì†Œ ID. ë¹„ì–´ ìˆìœ¼ë©´ ì¥ì†Œ ì´ë¦„ìœ¼ë¡œ ëŒ€ì‹ í•˜ê³  ê²½ê³ 
+    private string CurrentLocationId()
+    {
+        if (string.IsNullOrEmpty(currentLocationData.locationId))
+        {
+            Debug.LogWarning(currentLocationData.locationName + "ì˜ locationIdê°€ ë¹„ì–´ ìˆì–´ ì¥ì†Œ ì´ë¦„ì„ ëŒ€ì‹  ì‚¬ìš©í•©ë‹ˆë‹¤.");
+            return currentLocationData.locationName;
+        }
+
+        return currentLocationData.locationId;
+    }
+
+    // [9ì¼ì°¨ ì¶”ê°€] ëŒ€í™”ì°½ ì—´ê¸°
+    // [10ì¼ì°¨ ë³€ê²½] ë³´ì—¬ì¤„ ëŒ€ì‚¬ë¥¼ ë°›ì•„ì„œ í‘œì‹œ
     private void OpenDialogue(string dialogue)
     {
         if (dialoguePanel == null)
         {
-            Debug.LogWarning("DialoguePanelÀÌ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogWarning("DialoguePanelì´ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
             return;
         }
 
@@ -152,7 +164,7 @@ public class InteractionController : MonoBehaviour
         dialoguePanel.SetActive(true);
     }
 
-    // [9ÀÏÂ÷ Ãß°¡] ´ëÈ­Ã¢ ´İ±â (´İ±â ¹öÆ°¿¡ ¿¬°á)
+    // [9ì¼ì°¨ ì¶”ê°€] ëŒ€í™”ì°½ ë‹«ê¸° (ë‹«ê¸° ë²„íŠ¼ì— ì—°ê²°)
     public void CloseDialogue()
     {
         HideChoices();
@@ -163,16 +175,16 @@ public class InteractionController : MonoBehaviour
         }
     }
 
-    // [8ÀÏÂ÷ Ãß°¡] ¼±ÅÃÁö º¸¿©ÁÖ±â
+    // [8ì¼ì°¨ ì¶”ê°€] ì„ íƒì§€ ë³´ì—¬ì£¼ê¸°
     private void ShowChoices()
     {
         if (choicePanel == null)
         {
-            Debug.LogWarning("ChoicePanelÀÌ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogWarning("ChoicePanelì´ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
             return;
         }
 
-        // ÇöÀç Àå¼ÒÀÇ ¼±ÅÃÁö ¹®±¸¸¦ ¹öÆ°¿¡ ³Ö±â
+        // í˜„ì¬ ì¥ì†Œì˜ ì„ íƒì§€ ë¬¸êµ¬ë¥¼ ë²„íŠ¼ì— ë„£ê¸°
         if (choiceAButtonText != null)
         {
             choiceAButtonText.text = currentLocationData.choiceAText;
@@ -186,7 +198,7 @@ public class InteractionController : MonoBehaviour
         choicePanel.SetActive(true);
     }
 
-    // [8ÀÏÂ÷ Ãß°¡] ¼±ÅÃÁö ¼û±â±â
+    // [8ì¼ì°¨ ì¶”ê°€] ì„ íƒì§€ ìˆ¨ê¸°ê¸°
     private void HideChoices()
     {
         if (choicePanel != null)
@@ -195,12 +207,12 @@ public class InteractionController : MonoBehaviour
         }
     }
 
-    // °á°ú Ãâ·Â
+    // ê²°ê³¼ ì¶œë ¥
     private void DisplayResult(string result)
     {
         if (interactionResultText == null)
         {
-            Debug.LogWarning("InteractionResultText°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogWarning("InteractionResultTextê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
             return;
         }
 
