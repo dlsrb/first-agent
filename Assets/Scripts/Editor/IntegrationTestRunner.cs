@@ -58,8 +58,10 @@ public static class IntegrationTestRunner
     static bool fullBattles;
 
     // [C-2] 경제 흐름 확인용 기준값 (mark 단계에서 저장)
-    static int markGold, markFood;
+    static int markGold, markFood, markHp;
     static ShopController shopUi;
+    static HomeController homeUi;
+    const string HOME = "Canvas/HomePanel/Window/";
     static EconomySettings eco;
 
     [MenuItem("요원/(개발) 통합 테스트 실행")]
@@ -90,6 +92,7 @@ public static class IntegrationTestRunner
         battle = selector.battleController;
         shopUi = UnityEngine.Object.FindAnyObjectByType<ShopController>(FindObjectsInactive.Include);
         eco = battle.economy;
+        homeUi = UnityEngine.Object.FindAnyObjectByType<HomeController>(FindObjectsInactive.Include);
         canvas = GameObject.Find("Canvas").transform;
         region = mapView.startRegion;
 
@@ -589,6 +592,28 @@ public static class IntegrationTestRunner
         Add("click", SHOP_EXIT, "!shopOpen");
         Add("click", EXIT, "info,!interior");
         Add("click", CLOSEX, "!info");
+
+        // 8) [C-3] 홈 창 (상단 바 프로필): 무기 해제 → 다시 장착, 인벤토리에서 음식 사용
+        int atkAdv = baseAtk + advWeapon.attackBonus + advWeapon.attackPerEnhance;
+        Add("hurt", "", "");
+        Add("click", "Canvas/TopBar/ProfileButton", "homeOpen,homeTab=Stats,!homeReadOnly,attackShown=" + atkAdv);
+        Add("click", HOME + "EquipmentTab", "homeTab=Equipment");
+        Add("click", HOME + "ListArea/SlotArea/WeaponUnequipButton", "noWeapon,attack=" + baseAtk + ",homeMsg");
+        Add("homeRow", "item:" + advWeapon.itemId, "weaponIs:" + advWeapon.itemId + ",attack=" + atkAdv + ",homeMsg");
+        Add("click", HOME + "InventoryTab", "homeTab=Inventory");
+        Add("mark", "", "");
+        Add("homeRow", "item:" + food.itemId, "foodDelta=-1,hpUp,homeMsg");
+        Add("click", HOME + "CloseButton", "!homeOpen");
+
+        // 9) [C-3] 전투 중 프로필: 보기만 (장착·사용 불가) → 닫으면 전투 계속
+        Add("sel", "place:" + fightPlace.locationId, "info");
+        Add("prepBattle", "", "");
+        Add("click", ENTER, "battle");
+        Add("click", "Canvas/BattlePanel/ProfileButton", "homeOpen,homeReadOnly,homeMsg");
+        Add("click", HOME + "EquipmentTab", "homeTab=Equipment,homeRowsLocked");
+        Add("click", HOME + "InventoryTab", "homeTab=Inventory,homeRowsLocked");
+        Add("click", HOME + "CloseButton", "!homeOpen,battle");
+        Add("battleExit", "", "!battle");
     }
 
     static void GoToArea(ref string cur, AreaData target)
@@ -666,6 +691,7 @@ public static class IntegrationTestRunner
             {
                 markGold = P.gold;
                 markFood = P.CountOf("food");
+                markHp = P.currentHp;
             }
             else if (s.kind == "newPlayer")
             {
@@ -688,6 +714,22 @@ public static class IntegrationTestRunner
             {
                 var kv = s.target.Split(':');
                 shopUi.Open(places[kv[0]].interactions.Find(x => x.interactionId == kv[1]).shop);
+            }
+            else if (s.kind == "homeRow")
+            {
+                int row = -1;
+                for (int i = 0; i < homeUi.Visible.Count; i++)
+                {
+                    var r = homeUi.Visible[i];
+                    if (r.item != null && "item:" + r.item.itemId == s.target && !P.IsEquipped(r.uid)) { row = i; break; }
+                }
+                if (row < 0) return " rowNotFound";
+                var go = GameObject.Find(HOME + "ListArea/Row" + row + "/ActionButton");
+                if (go == null) return " rowInactive";
+                var sp = Center(go);
+                var h = HandlerAt(sp);
+                if (h != go) return " clickBlockedBy:" + (h == null ? "none" : h.name);
+                ExecuteEvents.Execute(go, new PointerEventData(EventSystem.current) { position = sp }, ExecuteEvents.pointerClickHandler);
             }
             else if (s.kind == "clickRow")
             {
@@ -836,6 +878,16 @@ public static class IntegrationTestRunner
                         canvas.Find("PlaceInteriorPanel/PlaceNameText").GetComponent<TMP_Text>().text == st.defaultRespawnPlace.placeName &&
                         p.currentHp == Mathf.Max(1, Mathf.RoundToInt(p.maxHp * st.reviveHpRatio)) && p.gold == 90;
                 }
+                // [C-3] 홈 창
+                else if (e == "homeOpen") v = Active("HomePanel");
+                else if (e == "homeReadOnly") v = homeUi.ReadOnly;
+                else if (key == "homeTab") v = homeUi.CurrentTab.ToString() == val;
+                else if (e == "homeMsg") v = homeUi.Message != "";
+                else if (e == "noWeapon") v = P.equippedWeaponUid == 0;
+                else if (e == "hpUp") v = P.currentHp > markHp;
+                else if (e == "homeRowsLocked") v = homeUi.Visible.Count > 0 && homeUi.Visible.TrueForAll(r => !r.enabled) &&
+                                                    !canvas.Find("HomePanel/Window/ListArea/Row0/ActionButton").GetComponent<Button>().interactable;
+                else if (key == "attackShown") v = canvas.Find("HomePanel/Window/TextArea/RightText").GetComponent<TMP_Text>().text.Contains("공격  " + val);
                 // [C-2] 상점·병원·경제
                 else if (e == "notice") v = res == RESPAWN_NOTICE;
                 else if (e.StartsWith("respawnIs:")) v = P.respawnPlaceId == e.Substring(10) && P.respawnAreaId == mapNow;

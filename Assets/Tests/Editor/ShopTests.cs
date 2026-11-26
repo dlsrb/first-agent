@@ -209,6 +209,43 @@ public class ShopTests
         Assert.AreEqual(50, p.gold);
     }
 
+    // ---------- [C-3] 홈 창: 해제·아이템 사용 ----------
+
+    [Test]
+    public void Unequip_RemovesBonus_ReequipRestores()
+    {
+        int weapon = p.equippedWeaponUid;
+        PlayerStats.Unequip(p, ItemType.Weapon, settings, db);
+        Assert.AreEqual(0, p.equippedWeaponUid);
+        Assert.AreEqual(3, p.attack);
+
+        PlayerStats.Unequip(p, ItemType.Armor, settings, db);
+        Assert.AreEqual(6, p.defense);
+
+        Assert.IsTrue(PlayerStats.Equip(p, weapon, settings, db));
+        Assert.AreEqual(5, p.attack);
+        Assert.IsNotNull(p.FindEquipment(weapon), "해제해도 장비는 소지");
+    }
+
+    [Test]
+    public void UseItem_HealsAndConsumes_RefusesWhenFull()
+    {
+        p.AddItem("food", 2);
+        Assert.IsFalse(ShopLogic.UseItem(p, food).ok, "체력이 가득하면 안 씀");
+        Assert.AreEqual(2, p.CountOf("food"));
+
+        p.currentHp = 50;
+        Assert.IsTrue(ShopLogic.UseItem(p, food).ok);
+        Assert.AreEqual(80, p.currentHp);
+        Assert.AreEqual(1, p.CountOf("food"));
+
+        p.currentHp = 90;
+        ShopLogic.UseItem(p, food);
+        Assert.AreEqual(100, p.currentHp, "최대 체력까지만");
+
+        Assert.IsFalse(ShopLogic.UseItem(p, stone).ok, "재료는 사용 불가");
+    }
+
     // ---------- 조건 ----------
 
     [Test]

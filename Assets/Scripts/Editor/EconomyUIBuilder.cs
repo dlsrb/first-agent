@@ -56,19 +56,22 @@ public static class EconomyUIBuilder
         var db = AssetDatabase.LoadAssetAtPath<GameDatabase>(DatabasePath);
         var eco = AssetDatabase.LoadAssetAtPath<EconomySettings>(EconomyPath);
 
-        foreach (var n in new[] { "TopBar", "ShopPanel", "HospitalPanel" })
+        foreach (var n in new[] { "TopBar", "ShopPanel", "HospitalPanel", "HomePanel" })
         {
             var old = canvas.transform.Find(n);
             if (old != null) Undo.DestroyObjectImmediate(old.gameObject);
         }
 
+        var selector = Object.FindAnyObjectByType<LocationSelector>();
         var shop = BuildShop(canvas.transform, settings, db, eco);
         var hospital = BuildHospital(canvas.transform, settings, db, eco);
+        var home = BuildHome(canvas.transform, settings, db, eco, selector != null ? selector.battleController : null);
         var top = BuildTopBar(canvas.transform, settings, db);
+        top.home = home;
 
         // 그리는 순서 (뒤가 위): 정보창은 상단 바보다 위 (오른쪽 위에 열려도 X 버튼이 가려지지 않게).
-        // 정보창과 장소 내부는 동시에 열리지 않는다. 전투·만화가 맨 위
-        string[] order = { "BackToRegionButton", "PlaceInteriorPanel", "TopBar", "LocationInfoPanel", "ShopPanel", "HospitalPanel", "BattlePanel", "ComicPanel" };
+        // 정보창과 장소 내부는 동시에 열리지 않는다. 홈 창은 전투 위(전투 중 보기), 만화가 맨 위
+        string[] order = { "BackToRegionButton", "PlaceInteriorPanel", "TopBar", "LocationInfoPanel", "ShopPanel", "HospitalPanel", "BattlePanel", "HomePanel", "ComicPanel" };
 
         for (int i = 0; i < order.Length; i++)
         {
@@ -81,9 +84,88 @@ public static class EconomyUIBuilder
         ic.hospitalController = hospital;
         EditorUtility.SetDirty(ic);
 
+        // [C-3] 전투 화면 프로필 버튼 → 홈 창 (보기 전용)
+        var battleProfile = canvas.transform.Find("BattlePanel/ProfileButton");
+
+        if (battleProfile != null)
+        {
+            var b = battleProfile.GetComponent<Button>();
+            Undo.RecordObject(b, "profile");
+            for (int i = b.onClick.GetPersistentEventCount() - 1; i >= 0; i--) UnityEventTools.RemovePersistentListener(b.onClick, i);
+            UnityEventTools.AddPersistentListener(b.onClick, home.Open);
+            b.interactable = true;   // B-2에서는 자리만이라 꺼 두었음
+            EditorUtility.SetDirty(b);
+        }
+
         EditorSceneManager.MarkSceneDirty(canvas.scene);
         EditorSceneManager.SaveScene(canvas.scene);
-        Debug.Log("상단 바·상점 창·병원 창을 만들고 씬을 저장했습니다.");
+        Debug.Log("상단 바·상점 창·병원 창·홈 창을 만들고 씬을 저장했습니다.");
+    }
+
+    // ---------- [C-3] 홈·스탯 창 ----------
+
+    static HomeController BuildHome(Transform canvas, BattleSettings settings, GameDatabase db, EconomySettings eco, BattleController battle)
+    {
+        var root = Rect("HomePanel", canvas, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        Undo.RegisterCreatedObjectUndo(root.gameObject, "HomePanel");
+        AddImage(root, new Color(0f, 0f, 0f, 0.6f), null);
+        var hc = root.gameObject.AddComponent<HomeController>();
+        hc.settings = settings; hc.database = db; hc.economy = eco; hc.battleController = battle;
+
+        var win = Rect("Window", root, Mid, Mid, new Vector2(0, -20), new Vector2(1640, 860));
+        AddImage(win, new Color(0.93f, 0.93f, 0.93f), uiSprite).type = Image.Type.Sliced;
+
+        Text("TitleText", win, "홈", 44, Dark, TextAlignmentOptions.Left, Mid, new Vector2(-560, 360), new Vector2(400, 70));
+        hc.summaryText = Text("SummaryText", win, "", 28, Dark, TextAlignmentOptions.Right, Mid, new Vector2(230, 360), new Vector2(1060, 60));
+
+        hc.statsTabButton = Button("StatsTab", win, "스탯", 30, Mid, new Vector2(-600, 270), new Vector2(220, 64), hc.OnStatsTab);
+        hc.equipmentTabButton = Button("EquipmentTab", win, "장비", 30, Mid, new Vector2(-370, 270), new Vector2(220, 64), hc.OnEquipmentTab);
+        hc.inventoryTabButton = Button("InventoryTab", win, "인벤토리", 30, Mid, new Vector2(-140, 270), new Vector2(220, 64), hc.OnInventoryTab);
+        hc.growthTabButton = Button("GrowthTab", win, "성장", 30, Mid, new Vector2(90, 270), new Vector2(220, 64), hc.OnGrowthTab);
+
+        // 글 영역 (스탯·성장)
+        var text = Rect("TextArea", win, Mid, Mid, new Vector2(0, -20), new Vector2(1520, 480));
+        hc.textArea = text.gameObject;
+        hc.leftText = Text("LeftText", text, "", 30, Dark, TextAlignmentOptions.TopLeft, Mid, new Vector2(-390, 0), new Vector2(720, 470));
+        hc.rightText = Text("RightText", text, "", 30, Dark, TextAlignmentOptions.TopLeft, Mid, new Vector2(390, 0), new Vector2(720, 470));
+
+        // 목록 영역 (장비·인벤토리). 장비 탭이면 위에 장착 칸 2개
+        var list = Rect("ListArea", win, Mid, Mid, new Vector2(0, -20), new Vector2(1520, 520));
+        hc.listArea = list.gameObject;
+
+        var slots = Rect("SlotArea", list, Mid, Mid, new Vector2(0, 205), new Vector2(1520, 100));
+        hc.slotArea = slots.gameObject;
+        hc.weaponSlotText = Text("WeaponSlotText", slots, "", 26, Dark, TextAlignmentOptions.Left, Mid, new Vector2(-470, 0), new Vector2(480, 90));
+        hc.weaponUnequipButton = Button("WeaponUnequipButton", slots, "해제", 26, Mid, new Vector2(-150, 0), new Vector2(130, 70), hc.OnUnequipWeapon);
+        hc.armorSlotText = Text("ArmorSlotText", slots, "", 26, Dark, TextAlignmentOptions.Left, Mid, new Vector2(300, 0), new Vector2(480, 90));
+        hc.armorUnequipButton = Button("ArmorUnequipButton", slots, "해제", 26, Mid, new Vector2(620, 0), new Vector2(130, 70), hc.OnUnequipArmor);
+
+        UnityAction[] rowClicks = { hc.OnRow0, hc.OnRow1, hc.OnRow2, hc.OnRow3 };
+
+        for (int i = 0; i < 4; i++)
+        {
+            var row = Rect("Row" + i, list, Mid, Mid, new Vector2(0, 95 - i * 100), new Vector2(1400, 92));
+            AddImage(row, White, uiSprite).type = Image.Type.Sliced;
+            var v = new ShopRowView { root = row.gameObject };
+            v.icon = AddImage(Rect("Icon", row, Mid, Mid, new Vector2(-640, 0), new Vector2(76, 76)), Gray, null);
+            v.nameText = Text("NameText", row, "", 28, Dark, TextAlignmentOptions.Left, Mid, new Vector2(-410, 0), new Vector2(360, 86));
+            v.infoText = Text("InfoText", row, "", 24, new Color(0.3f, 0.3f, 0.3f), TextAlignmentOptions.Left, Mid, new Vector2(110, 0), new Vector2(660, 86));
+            v.actionButton = Button("ActionButton", row, "", 26, Mid, new Vector2(580, 0), new Vector2(200, 76), rowClicks[i]);
+            v.actionText = v.actionButton.GetComponentInChildren<TMP_Text>();
+            ((Image)v.actionButton.targetGraphic).color = new Color(1f, 0.92f, 0.7f);
+            hc.rows.Add(v);
+        }
+
+        hc.prevPageButton = Button("PrevPageButton", list, "▲", 30, Mid, new Vector2(390, -240), new Vector2(90, 60), hc.OnPrevPage);
+        hc.pageText = Text("PageText", list, "", 26, Dark, TextAlignmentOptions.Center, Mid, new Vector2(170, -240), new Vector2(340, 50));
+        hc.nextPageButton = Button("NextPageButton", list, "▼", 30, Mid, new Vector2(500, -240), new Vector2(90, 60), hc.OnNextPage);
+
+        hc.messageText = Text("MessageText", win, "", 28, new Color(0.1f, 0.3f, 0.6f), TextAlignmentOptions.Left, Mid, new Vector2(-150, -375), new Vector2(1200, 60));
+        Button("CloseButton", win, "닫기", 32, Mid, new Vector2(680, -375), new Vector2(200, 72), hc.Close);
+
+        root.gameObject.SetActive(false);
+        EditorUtility.SetDirty(hc);
+        return hc;
     }
 
     // ---------- 상점 창 ----------

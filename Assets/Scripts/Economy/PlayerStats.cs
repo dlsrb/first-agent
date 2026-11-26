@@ -81,4 +81,12 @@ public static class PlayerStats
         Recalculate(p, settings, db);
         return true;
     }
+
+    // [C-3] 해제 (무기·방어구 칸)
+    public static void Unequip(PlayerState p, ItemType slot, BattleSettings settings, GameDatabase db)
+    {
+        if (slot == ItemType.Weapon) p.equippedWeaponUid = 0;
+        else if (slot == ItemType.Armor) p.equippedArmorUid = 0;
+        Recalculate(p, settings, db);
+    }
 }

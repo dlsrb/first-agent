@@ -129,6 +129,34 @@ public static class ShopLogic
         return ShopResult.Ok(Josa.Ga(NameWithEnhance(item, owned.enhance - 1)) + " " + Josa.Euro("+" + owned.enhance) + " 강화되었다. (-" + step.gold + "G·강화석 " + step.materials + "개)");
     }
 
+    // ---------- [C-3] 소비 아이템 사용 (홈 창 인벤토리, 전투 밖) ----------
+
+    public static ShopResult UseItem(PlayerState p, ItemData item)
+    {
+        if (item == null || item.type != ItemType.Consumable || p.CountOf(item.itemId) <= 0)
+        {
+            return ShopResult.Fail("[쓸 수 없는 아이템]");
+        }
+
+        bool hpFull = item.healHp <= 0 || p.currentHp >= p.maxHp;
+        bool energyFull = item.healEnergy <= 0 || p.currentEnergy >= p.maxEnergy;
+
+        if (hpFull && energyFull)
+        {
+            return ShopResult.Fail("지금은 쓸 필요가 없다.");
+        }
+
+        p.RemoveItem(item.itemId, 1);
+        int hpBefore = p.currentHp, enBefore = p.currentEnergy;
+        p.currentHp = System.Math.Min(p.maxHp, p.currentHp + item.healHp);
+        p.currentEnergy = System.Math.Min(p.maxEnergy, p.currentEnergy + item.healEnergy);
+
+        string msg = Josa.Eul(item.itemName) + " 썼다.";
+        if (p.currentHp > hpBefore) msg += " 체력 +" + (p.currentHp - hpBefore);
+        if (p.currentEnergy > enBefore) msg += " 기력 +" + (p.currentEnergy - enBefore);
+        return ShopResult.Ok(msg);
+    }
+
     // ---------- 병원 ----------
 
     public static ShopResult Heal(PlayerState p, EconomySettings eco)

@@ -2,12 +2,13 @@ using UnityEngine;
 using TMPro;
 
 // 지도 공통 상단 바 (Canvas/TopBar, 맵 구상도 "공통 상단"): 오른쪽 위 골드 표시 + 프로필 버튼.
-// 전투·만화 화면이 위에 덮는다. 프로필 버튼(홈·스탯 창)은 C-3.
+// 전투·만화 화면이 위에 덮는다. 프로필 버튼 = 홈·스탯 창 (C-3, 전투 중에는 전투 화면의 프로필 버튼).
 public class TopBarController : MonoBehaviour
 {
     public BattleSettings settings;
     public GameDatabase database;
     public TMP_Text goldText;
+    public HomeController home;
 
     int shownGold = int.MinValue;
 
@@ -29,9 +30,10 @@ public class TopBarController : MonoBehaviour
         }
     }
 
-    // ProfileButton OnClick — C-3에서 홈·스탯 창을 연다
+    // ProfileButton OnClick
     public void OnProfile()
     {
-        Debug.Log("[홈·스탯 창은 C-3]");
+        if (home != null) home.Open();
+        else Debug.LogWarning("TopBar에 HomeController가 연결되지 않았습니다.");
     }
 }

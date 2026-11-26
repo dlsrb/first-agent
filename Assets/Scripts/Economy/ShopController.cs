@@ -317,13 +317,9 @@ public class ShopController : MonoBehaviour
         var item = eq != null ? database.FindItem(eq.itemId) : null;
         if (item == null) return;
 
-        // 홈 창(C-3) 전까지는 여기서도 장착할 수 있게 한다
-        ShowConfirm(ShopLogic.NameWithEnhance(item, eq.enhance) + "\n판매가 " + price + "G", "판매", () => Act(ShopLogic.SellEquipment(Player, uid, economy, database)),
-                    "장착", () =>
-                    {
-                        bool ok = PlayerStats.Equip(Player, uid, settings, database);
-                        Act(ok ? ShopResult.Ok(Josa.Eul(item.itemName) + " 장착했다.") : ShopResult.Fail("[장착할 수 없다]"));
-                    });
+        // 장착은 홈 창(C-3)에서. 상점에서는 판매만
+        ShowConfirm(ShopLogic.NameWithEnhance(item, eq.enhance) + "\n판매가 " + price + "G", "판매",
+                    () => Act(ShopLogic.SellEquipment(Player, uid, economy, database)), null, null);
     }
 
     void OnEnhance(int uid)

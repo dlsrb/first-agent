@@ -61,8 +61,10 @@ public static class BattleUIBuilder
         var hpBar = Bar("MonsterHpBar", panel, top, new Vector2(0, -70), new Vector2(1200, 46), new Color(0.85f, 0.2f, 0.2f), out bc.monsterHpFill);
         bc.monsterHpText = Text("MonsterHpText", hpBar, "0 / 0", 30, White, TextAlignmentOptions.Center, Vector2.one * 0.5f, Vector2.zero, new Vector2(1200, 46));
 
-        var profile = Button("ProfileButton", panel, "프로필", 26, new Vector2(1, 1), new Vector2(-190, -70), new Vector2(100, 100), null);
-        profile.interactable = false;
+        // [C-3] 프로필 = 홈·스탯 창 (전투 중 보기 전용). 홈 창이 아직 없으면 EconomyUIBuilder가 연결한다
+        var homeUi = Object.FindAnyObjectByType<HomeController>(FindObjectsInactive.Include);
+        var profile = Button("ProfileButton", panel, "프로필", 26, new Vector2(1, 1), new Vector2(-190, -70), new Vector2(100, 100), homeUi != null ? homeUi.Open : (UnityAction)null);
+        profile.interactable = homeUi != null;
         var setting = Button("SettingsButton", panel, "설정", 26, new Vector2(1, 1), new Vector2(-75, -70), new Vector2(100, 100), null);
         setting.interactable = false;
 
