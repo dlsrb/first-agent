@@ -166,12 +166,24 @@ public class BattleEngine
                 return "";
             }
 
+            string text;
+
             if (KnowsMonster && !string.IsNullOrEmpty(Intent.telegraphClear))
             {
-                return Intent.telegraphClear;
+                text = Intent.telegraphClear;
+            }
+            else
+            {
+                text = string.IsNullOrEmpty(Intent.telegraphVague) ? Intent.actionName : Intent.telegraphVague;
             }
 
-            return string.IsNullOrEmpty(Intent.telegraphVague) ? Intent.actionName : Intent.telegraphVague;
+            // [B-4] 보스 페이즈 예고 문구 (예: 3페이즈 "도망칠 준비") — 텍스트만, 기믹 없음
+            if (PhaseIndex >= 0 && !string.IsNullOrEmpty(monster.phases[PhaseIndex].intentNote))
+            {
+                text = monster.phases[PhaseIndex].intentNote + "\n" + text;
+            }
+
+            return text;
         }
     }
 
@@ -514,7 +526,7 @@ public class BattleEngine
         {
             tauntUsedThisTurn = true;
             AddOrRefresh(monsterEffects, settings.tauntEffect, false);
-            Log("도발! " + settings.tauntEffect.effectName);
+            Log("도발! 괴이의 방어가 약해지고 공격이 거세진다 (" + settings.tauntEffect.duration + "턴)");
             return;
         }
 
@@ -628,7 +640,7 @@ public class BattleEngine
 
                     if (blocked)
                     {
-                        Log(action.effect.effectName + "을(를) 막았다!");
+                        Log(Josa.Eul(action.effect.effectName) + " 막았다!");
                         GiveOpening();
                     }
                     else
@@ -640,7 +652,7 @@ public class BattleEngine
                 break;
 
             case MonsterActionKind.Reflect:
-                Log(monster.monsterName + "이(가) 자세를 풀었다.");
+                Log(Josa.Ga(monster.monsterName) + " 자세를 풀었다.");
 
                 if (useTurnFlags && usedSpecial == SpecialAction.Wait)
                 {

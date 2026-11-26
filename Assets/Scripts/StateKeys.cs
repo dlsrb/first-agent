@@ -26,6 +26,12 @@ public static class StateKeys
         return "battle:cleared:" + locationId;
     }
 
+    // [B-4] 보스를 처음 쓰러뜨림 (장소와 별개로 괴이 기준). 예: "boss:defeated:boss_1"
+    public static string BossDefeated(string monsterId)
+    {
+        return "boss:defeated:" + monsterId;
+    }
+
     // 키에 쓸 수 있는 ID인지 (비어 있지 않고 ':' 없음)
     public static bool IsValidId(string id)
     {

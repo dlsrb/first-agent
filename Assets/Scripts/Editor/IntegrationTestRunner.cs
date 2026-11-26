@@ -43,10 +43,28 @@ public static class IntegrationTestRunner
     static StringBuilder log;
     static int index, pass, fail, nextFrame;
     static bool acted;
+    static bool botRunning;
     static string actNote;
+
+    // true면 전투 장소를 끝까지 싸운다 (B단계 통합 테스트)
+    static bool fullBattles;
 
     [MenuItem("요원/(개발) 통합 테스트 실행")]
     public static string Run()
+    {
+        fullBattles = false;
+        return Start();
+    }
+
+    // [B-4] B단계 통합 테스트: A단계 흐름 + 모든 전투(일반·스토리·보스)를 버튼으로 끝까지 + 만화·패배·도망
+    [MenuItem("요원/(개발) B단계 통합 테스트 실행")]
+    public static string RunFull()
+    {
+        fullBattles = true;
+        return Start();
+    }
+
+    static string Start()
     {
         if (!EditorApplication.isPlaying)
         {
@@ -100,9 +118,24 @@ public static class IntegrationTestRunner
 
                 if (p.battle.mode != BattleMode.None)
                 {
-                    // 전투 장소: 전투 화면 → 도망 처리로 복귀 (전투 뒤에는 정보창이 닫힌 채 구역 맵)
-                    Add("click", ENTER, "battle,!interior,monsterOk:" + p.locationId + ":" + area.areaId + ",battleBlocksMap");
-                    Add("battleExit", "", "!battle,map=" + area.areaId + ",!info,!interior");
+                    if (fullBattles)
+                    {
+                        // 끝까지 싸움 (스토리: 만화 → 전투, 보스: 페이즈 만화 2번, 첫 클리어 플래그)
+                        bool story = p.battle.mode == BattleMode.Story;
+                        bool boss = story && p.battle.fixedMonster != null && p.battle.fixedMonster.IsBoss;
+                        Add("prepBattle", boss ? "boss" : "", "");
+                        Add("click", ENTER, story ? "comic" : "battle,!interior,monsterOk:" + p.locationId + ":" + area.areaId);
+                        Add("battleFull", p.locationId, "won,!battle,map=" + area.areaId + ",!info,!interior" +
+                            (story ? ",introComicFirst,cleared:" + p.locationId : "") +
+                            (boss ? ",phaseComics=" + p.battle.fixedMonster.phases.Count + ",bossFlag:" + p.battle.fixedMonster.monsterId : ""));
+                    }
+                    else
+                    {
+                        // 전투 장소: 전투 화면 → 도망 처리로 복귀 (전투 뒤에는 정보창이 닫힌 채 구역 맵)
+                        Add("click", ENTER, "battle,!interior,monsterOk:" + p.locationId + ":" + area.areaId + ",battleBlocksMap");
+                        Add("battleExit", "", "!battle,map=" + area.areaId + ",!info,!interior");
+                    }
+
                     infoOpen = false;
                     continue;
                 }
@@ -169,6 +202,166 @@ public static class IntegrationTestRunner
         Add("click", EXIT, "info");
         Add("click", CLOSEX, "!info");
         Add("click", BACK, "map=region,!back");
+
+        if (!fullBattles) return;
+
+        // ---- 만화 뷰어 단독: 테스트 만화 1페이지 4칸 (칸마다 다른 등장 효과), 끝까지 / 건너뛰기 ----
+        Add("comicPlay", "Assets/Data/Battle/Comics/Comic_Test.asset", "comicOpen,comicPanel=1,placeholder:1:1");
+        Add("comicAdvance", "", "comicPanel=2,placeholder:1:2");
+        Add("comicAdvance", "", "comicPanel=3,placeholder:1:3");
+        Add("comicAdvance", "", "comicPanel=4,placeholder:1:4,lines=4");
+        Add("comicAdvance", "", "!comicOpen,comicDone");
+        Add("comicPlay", "Assets/Data/Battle/Comics/Comic_Test.asset", "comicOpen");
+        Add("click", "Canvas/ComicPanel/SkipButton", "!comicOpen,comicDone");
+
+        // ---- 패배: 체력 1로 일반 전투 → 복귀 장소 ----
+        var fightArea = region.areas.Find(a => a.area.places.Exists(e => e.place.battle.mode == BattleMode.Random));
+
+        if (fightArea != null)
+        {
+            var fightPlace = fightArea.area.places.Find(e => e.place.battle.mode == BattleMode.Random).place;
+            Add("sel", "area:" + fightArea.area.areaId, "info");
+            Add("click", ENTER, "map=" + fightArea.area.areaId);
+            Add("sel", "place:" + fightPlace.locationId, "info");
+            Add("prepBattle", "lose", "");
+            Add("click", ENTER, "battle");
+            Add("battleFull", fightPlace.locationId, "lost,!battle,respawned");
+
+            // ---- 도망: 성공할 때까지 도망 ----
+            // 패배 후 복귀는 지도 선택 없이 장소 내부로 들어오므로, 나가면 정보창 없이 구역 맵
+            Add("click", EXIT, "!info,!interior");
+            Add("click", BACK, "map=region");
+            Add("sel", "area:" + fightArea.area.areaId, "info");
+            Add("click", ENTER, "map=" + fightArea.area.areaId);
+            Add("sel", "place:" + fightPlace.locationId, "info");
+            Add("prepBattle", "flee", "");
+            Add("click", ENTER, "battle");
+            Add("battleFull", fightPlace.locationId, "fled,!battle,map=" + fightArea.area.areaId);
+        }
+    }
+
+    // ---------- [B-4] 전투 봇 (버튼으로 끝까지) ----------
+
+    static string botMode = "";          // "" = 이기기, "lose" = 지기, "flee" = 도망
+    static string botWant;               // 특수 행동 창에서 누를 항목
+    static int botTicks, botComics, botComicsBeforeTurn1, botTaunts, botCounters;
+    static string botResult;             // 결과 창 제목
+    static bool botComicWasOpen;
+    static bool comicCallback;
+
+    static bool BotTick()
+    {
+        botTicks++;
+        if (botTicks > 600) { botResult = "TIMEOUT"; return true; }
+
+        var viewer = ComicViewer.Instance;
+
+        if (viewer != null && viewer.IsPlaying)
+        {
+            if (!botComicWasOpen)
+            {
+                botComics++;
+                if (battle.Engine == null || battle.Engine.Turn == 0) botComicsBeforeTurn1++;
+            }
+
+            botComicWasOpen = true;
+            ClickPath("Canvas/ComicPanel");   // 다음 칸
+            return false;
+        }
+
+        botComicWasOpen = false;
+
+        if (Active("BattlePanel/ResultPopup"))
+        {
+            botResult = canvas.Find("BattlePanel/ResultPopup/ResultBox/ResultTitleText").GetComponent<TMP_Text>().text;
+            ClickPath("Canvas/BattlePanel/ResultPopup/ResultBox/ResultOkButton");
+            return true;
+        }
+
+        var e = battle.Engine;
+        if (e == null || battle.WaitingForComic) return false;
+
+        if (Active("BattlePanel/AttackArea"))
+        {
+            if (Active("BattlePanel/AttackArea/ConfirmAttackButton")) ClickPath("Canvas/BattlePanel/AttackArea/ConfirmAttackButton");
+            else if (Active("BattlePanel/AttackArea/RollButton")) ClickPath("Canvas/BattlePanel/AttackArea/RollButton");
+            return false;   // 굴리는 중이면 기다림
+        }
+
+        if (Active("BattlePanel/SpecialPopup"))
+        {
+            foreach (Transform t in canvas.Find("BattlePanel/SpecialPopup/SpecialItems"))
+            {
+                if (t.gameObject.activeSelf && t.GetComponentInChildren<TMP_Text>().text.StartsWith(botWant))
+                {
+                    ClickPath("Canvas/BattlePanel/SpecialPopup/SpecialItems/" + t.name);
+                    return false;
+                }
+            }
+
+            ClickPath("Canvas/BattlePanel/SpecialPopup/SpecialNextButton");
+            return false;
+        }
+
+        if (Active("BattlePanel/FleePopup"))
+        {
+            ClickPath("Canvas/BattlePanel/FleePopup/FleeConfirmButton");
+            return false;
+        }
+
+        if (!Active("BattlePanel/ActionButtons")) return false;
+
+        if (botMode == "flee")
+        {
+            ClickPath("Canvas/BattlePanel/ActionButtons/FleeButton");
+            return false;
+        }
+
+        if (botMode == "lose")
+        {
+            ClickPath("Canvas/BattlePanel/ActionButtons/AttackButton");
+            return false;
+        }
+
+        // 이기는 전략: 보스 1페이즈 도발(턴 안 씀) → 예고 대응 → 공격
+        var intent = e.Intent;
+        bool tauntActive = e.monsterEffects.Exists(x => x.data == e.settings.tauntEffect);
+
+        if (e.monster.IsBoss && e.PhaseIndex < 0 && !tauntActive && e.CanSpecial(SpecialAction.Taunt))
+        {
+            botWant = DisplayNames.Special(SpecialAction.Taunt);
+            botTaunts++;
+        }
+        else if (intent != null && intent.kind == MonsterActionKind.Reflect)
+        {
+            botWant = DisplayNames.Special(SpecialAction.Wait);
+            botCounters++;
+        }
+        else if (intent != null && intent.kind == MonsterActionKind.Debuff && intent.effect != null && intent.effect.blockedBy != SpecialAction.None)
+        {
+            botWant = DisplayNames.Special(intent.effect.blockedBy);
+            botCounters++;
+        }
+        else
+        {
+            ClickPath("Canvas/BattlePanel/ActionButtons/AttackButton");
+            return false;
+        }
+
+        ClickPath("Canvas/BattlePanel/ActionButtons/SpecialButton");
+        return false;
+    }
+
+    static void ClickPath(string path)
+    {
+        var go = GameObject.Find(path);
+        if (go == null) return;
+        var sp = Center(go);
+        var es = EventSystem.current;
+        var ped = new PointerEventData(es) { position = sp };
+        var hits = new List<RaycastResult>();
+        es.RaycastAll(ped, hits);
+        if (hits.Count > 0) ExecuteEvents.ExecuteHierarchy(hits[0].gameObject, ped, ExecuteEvents.pointerClickHandler);
     }
 
     // ---------- 실행 ----------
@@ -196,6 +389,28 @@ public static class IntegrationTestRunner
 
         var s = steps[index];
 
+        // [B-4] 전투를 끝까지: 여러 틱에 걸쳐 봇이 버튼을 누르고, 결과 창 확인까지 마치면 확인 단계로
+        if (s.kind == "battleFull")
+        {
+            if (!acted)
+            {
+                botTicks = botComics = botComicsBeforeTurn1 = botTaunts = botCounters = 0;
+                botResult = null;
+                botComicWasOpen = false;
+                acted = true;
+                botRunning = true;
+                actNote = "";
+                return;
+            }
+
+            if (botRunning)
+            {
+                if (!BotTick()) return;
+                botRunning = false;
+                return;   // 다음 틱에 확인
+            }
+        }
+
         if (!acted)
         {
             actNote = Act(s);
@@ -211,6 +426,13 @@ public static class IntegrationTestRunner
         {
             fail++;
             log.Append("#" + index + " " + s.kind + " " + s.target.Replace("Canvas/", "") + " => FAIL:" + fails + "\n");
+        }
+
+        if (s.kind == "battleFull")
+        {
+            // 전투 기록 (통과해도 남김)
+            log.Append("  [전투 " + s.target + "] 결과=" + botResult + " 틱=" + botTicks + " 만화=" + botComics + "(전투 전 " + botComicsBeforeTurn1 +
+                       ") 도발=" + botTaunts + " 대응=" + botCounters + "\n");
         }
 
         index++;
@@ -236,6 +458,38 @@ public static class IntegrationTestRunner
                 var h = HandlerAt(sp);
                 if (h != go) return " clickBlockedBy:" + (h == null ? "none" : h.name);
                 ExecuteEvents.Execute(go, new PointerEventData(EventSystem.current) { position = sp }, ExecuteEvents.pointerClickHandler);
+            }
+            else if (s.kind == "prepBattle")
+            {
+                // 테스트 지름길: 병원(C단계)이 없으므로 전투 전 체력·기력을 채움. 보스는 적정 장비(+5/+10) 가정
+                var p = GameStateManager.Instance.EnsurePlayer(battle.settings);
+                p.currentHp = p.maxHp;
+                p.currentEnergy = p.maxEnergy;
+                botMode = s.target == "boss" ? "" : s.target;
+
+                if (s.target == "boss" && p.attack == battle.settings.playerBase.attack)
+                {
+                    p.attack += 5;
+                    p.defense += 10;
+                }
+
+                if (s.target == "lose")
+                {
+                    p.currentHp = 1;
+                    p.gold = 100;
+                }
+            }
+            else if (s.kind == "comicPlay")
+            {
+                comicCallback = false;
+                var comic = AssetDatabase.LoadAssetAtPath<ComicData>(s.target);
+                ComicViewer.Instance.Play(comic, () => comicCallback = true);
+            }
+            else if (s.kind == "comicAdvance")
+            {
+                // 등장 중이면 첫 클릭은 등장 완료 (실제 플레이와 같음)
+                if (ComicViewer.Instance.Animating) ClickPath("Canvas/ComicPanel");
+                ClickPath("Canvas/ComicPanel");
             }
             else if (s.kind == "battleExit")
             {
@@ -325,6 +579,38 @@ public static class IntegrationTestRunner
                         if (Active("PlaceInteriorPanel/DialoguePanel/ChoicePanel/ChoiceBButton")) n++;
                     }
                     v = n == int.Parse(val);
+                }
+                // [B-4] 만화·전투 결과
+                else if (e == "comic" || e == "comicOpen") v = ComicViewer.Instance != null && ComicViewer.Instance.IsPlaying;
+                else if (e == "comicDone") v = comicCallback;
+                else if (key == "comicPanel") v = ComicViewer.Instance.PanelIndex + 1 == int.Parse(val);
+                else if (e.StartsWith("placeholder:"))
+                {
+                    var kv = e.Substring(12).Split(':');
+                    string want = "[만화 " + kv[0] + "페이지 " + kv[1] + "칸 미정]";
+                    v = false;
+                    foreach (var t in canvas.Find("ComicPanel").GetComponentsInChildren<TMP_Text>()) if (t.text == want) v = true;
+                }
+                else if (key == "lines")
+                {
+                    int n = 0;
+                    foreach (var t in canvas.Find("ComicPanel/Page/Panels").GetComponentsInChildren<RectTransform>()) if (t.name == "Line") n++;
+                    v = n == int.Parse(val);
+                }
+                else if (e == "won") v = botResult != null && botResult.StartsWith("승리");
+                else if (e == "lost") v = botResult != null && botResult.StartsWith("패배");
+                else if (e == "fled") v = botResult != null && botResult.StartsWith("도망");
+                else if (e == "introComicFirst") v = botComicsBeforeTurn1 >= 1;
+                else if (key == "phaseComics") v = botComics - botComicsBeforeTurn1 == int.Parse(val);
+                else if (e.StartsWith("cleared:")) v = g.HasFlag(StateKeys.BattleCleared(e.Substring(8)));
+                else if (e.StartsWith("bossFlag:")) v = g.HasFlag(StateKeys.BossDefeated(e.Substring(9)));
+                else if (e == "respawned")
+                {
+                    var st = battle.settings;
+                    var p = g.State.player;
+                    v = mapNow == st.defaultRespawnArea.areaId && Active("PlaceInteriorPanel") &&
+                        canvas.Find("PlaceInteriorPanel/PlaceNameText").GetComponent<TMP_Text>().text == st.defaultRespawnPlace.placeName &&
+                        p.currentHp == Mathf.Max(1, Mathf.RoundToInt(p.maxHp * st.reviveHpRatio)) && p.gold == 90;
                 }
                 else if (e.StartsWith("resultIs:")) v = res == FindIt(e.Substring(9)).resultText;
                 else if (e.StartsWith("infoFlag:")) v = g.HasFlag(StateKeys.MonsterInfo(e.Substring(9)));

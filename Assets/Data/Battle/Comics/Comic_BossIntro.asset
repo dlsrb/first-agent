@@ -14,7 +14,42 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   comicId: boss_intro
   pages:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - background: {fileID: 0}
+    panels:
+    - image: {fileID: 0}
+      area:
+        serializedVersion: 2
+        x: 0
+        y: 0.45
+        width: 1
+        height: 0.55
+      effect: 0
+      slideFrom: 0
+      lines:
+      - text: "[\uBCF4\uC2A4 \uC785\uC7A5 \uB300\uC0AC \uBBF8\uC815]"
+        position: {x: 0.5, y: 0.55}
+        width: 420
+    - image: {fileID: 0}
+      area:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 0.5
+        height: 0.45
+      effect: 1
+      slideFrom: 0
+      lines: []
+    - image: {fileID: 0}
+      area:
+        serializedVersion: 2
+        x: 0.5
+        y: 0
+        width: 0.5
+        height: 0.45
+      effect: 2
+      slideFrom: 0
+      lines:
+      - text: "[\uB300\uC0AC \uBBF8\uC815]"
+        position: {x: 0.75, y: 0.1}
+        width: 420
   bgm: {fileID: 0}

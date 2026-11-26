@@ -77,9 +77,13 @@ public class BossPhase
     [Tooltip("비어 있지 않으면 행동 패턴을 이 목록으로 교체")]
     public List<MonsterAction> actions = new List<MonsterAction>();
 
-    [Tooltip("전환할 때 보여 줄 문구 (예: 도망칠 준비를 한다)")]
+    [Tooltip("전환할 때 메시지 줄에 보여 줄 문구")]
     [TextArea(1, 3)]
     public string phaseMessage = "";
+
+    [Tooltip("[B-4] 이 페이즈 동안 예고 말풍선 맨 위에 항상 붙는 문구 (예: 도망칠 준비를 한다). 텍스트만, 기믹 없음")]
+    [TextArea(1, 3)]
+    public string intentNote = "";
 }
 
 // 괴이 1종 (에셋 1개). 이미지·이름·설명은 비워 두고 나중에 채운다.

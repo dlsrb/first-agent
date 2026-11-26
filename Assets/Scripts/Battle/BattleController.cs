@@ -133,16 +133,41 @@ public class BattleController : MonoBehaviour
             monsterImage.color = monster.image != null ? Color.white : defaultMonsterColor;
         }
 
+        // [B-4] 스토리 전투: 만화를 먼저 보여 준 뒤 전투 시작 (선공도 만화 뒤)
+        var intro = place.battle.mode == BattleMode.Story ? place.battle.introComic : null;
+        string opening = knows ? "" : "괴이가 나타났다!";
+
+        if (intro != null && ComicViewer.Instance != null)
+        {
+            WaitingForComic = true;
+            actionButtons.SetActive(false);
+            ComicViewer.Instance.Play(intro, () => { WaitingForComic = false; BeginEngine(opening); });
+        }
+        else
+        {
+            BeginEngine(opening);
+        }
+
+        return true;
+    }
+
+    // 만화가 재생 중인지 (그동안 행동 불가)
+    public bool WaitingForComic { get; private set; }
+
+    void BeginEngine(string opening)
+    {
         Engine.Start();
         Refresh();
-        ShowNewMessages(knows ? "" : "괴이가 나타났다!");
+        ShowNewMessages(opening);
 
         if (Engine.Outcome != BattleOutcome.None)
         {
             ShowResult();
         }
-
-        return true;
+        else
+        {
+            ShowOnly(null);
+        }
     }
 
     MonsterData PickMonster(PlaceData place, AreaData area, System.Random rng)
@@ -535,14 +560,39 @@ public class BattleController : MonoBehaviour
 
     bool CanAct()
     {
-        return Engine != null && Engine.Outcome == BattleOutcome.None && !defending;
+        return Engine != null && Engine.Outcome == BattleOutcome.None && !defending && !WaitingForComic;
     }
 
     void AfterAction()
     {
-        Engine.ClearPendingPhase();   // 페이즈 만화는 B-4
         Refresh();
         ShowNewMessages(null);
+
+        // [B-4] 보스 페이즈 전환: 전환 문구 + 전환 만화 → 끝나면 진행
+        var phaseComic = Engine.PendingComic;
+        var phaseMessage = Engine.PendingPhaseMessage;
+        Engine.ClearPendingPhase();
+
+        if (!string.IsNullOrEmpty(phaseMessage))
+        {
+            messageText.text = phaseMessage;
+        }
+
+        if (phaseComic != null && ComicViewer.Instance != null && Engine.Outcome == BattleOutcome.None)
+        {
+            WaitingForComic = true;
+            actionButtons.SetActive(false);
+            attackArea.SetActive(false);
+            ComicViewer.Instance.Play(phaseComic, () => { WaitingForComic = false; ContinueAfterAction(); });
+            return;
+        }
+
+        ContinueAfterAction();
+    }
+
+    void ContinueAfterAction()
+    {
+        if (Engine == null) return;
 
         if (Engine.Outcome != BattleOutcome.None)
         {
@@ -565,9 +615,17 @@ public class BattleController : MonoBehaviour
                 resultTitleText.text = "승리!";
                 detail = "[보상은 C단계]";
 
+                // 첫 클리어 기록 (C단계 재도전 보상 감소에 사용)
                 if (CurrentPlace != null && CurrentPlace.battle.mode == BattleMode.Story)
                 {
+                    bool first = !GameStateManager.Instance.HasFlag(StateKeys.BattleCleared(CurrentPlace.locationId));
                     GameStateManager.Instance.SetFlag(StateKeys.BattleCleared(CurrentPlace.locationId));
+                    detail = first ? "[첫 클리어! 보상은 C단계]" : "[재도전 클리어, 보상은 C단계]";
+                }
+
+                if (Engine.monster.IsBoss)
+                {
+                    GameStateManager.Instance.SetFlag(StateKeys.BossDefeated(Engine.monster.monsterId));
                 }
                 break;
 

@@ -187,6 +187,8 @@ public static class BattleUIBuilder
         panel.SetAsLastSibling();
         panel.gameObject.SetActive(false);
 
+        BuildComicViewer(canvas.transform);
+
         Undo.RecordObject(selector, "battleController");
         selector.battleController = bc;
         EditorUtility.SetDirty(selector);
@@ -195,6 +197,42 @@ public static class BattleUIBuilder
         EditorSceneManager.MarkSceneDirty(selector.gameObject.scene);
         EditorSceneManager.SaveScene(selector.gameObject.scene);
         Debug.Log("전투 화면(BattlePanel)을 만들고 씬을 저장했습니다.");
+    }
+
+    // ---------- [B-4] 만화 뷰어 (전투 화면보다 위, 맨 마지막 순서) ----------
+
+    static void BuildComicViewer(Transform canvas)
+    {
+        var old = canvas.Find("ComicPanel");
+        if (old != null) Undo.DestroyObjectImmediate(old.gameObject);
+
+        var mid = new Vector2(0.5f, 0.5f);
+        var root = Rect("ComicPanel", canvas, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        Undo.RegisterCreatedObjectUndo(root.gameObject, "ComicPanel");
+        AddImage(root, Color.black, null);
+
+        // 화면 어디를 눌러도 다음 칸
+        var viewer = root.gameObject.AddComponent<ComicViewer>();
+        var advance = root.gameObject.AddComponent<Button>();
+        advance.transition = Selectable.Transition.None;
+        UnityEventTools.AddPersistentListener(advance.onClick, viewer.OnAdvance);
+
+        // 페이지 = 1920x1080 (Canvas 기준 해상도와 같음)
+        var page = Rect("Page", root, mid, mid, Vector2.zero, new Vector2(1920, 1080));
+        viewer.pageBackground = AddImage(page, Color.black, null);
+        viewer.pageBackground.raycastTarget = false;
+        viewer.panelsRoot = Rect("Panels", page, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+        Button("SkipButton", root, "건너뛰기", 30, new Vector2(1, 1), new Vector2(-130, -55), new Vector2(200, 70), viewer.OnSkip);
+        viewer.pageText = Text("PageText", root, "", 24, new Color(0.8f, 0.8f, 0.8f), TextAlignmentOptions.Left, new Vector2(0, 0), new Vector2(230, 40), new Vector2(420, 44));
+        Text("HintText", root, "클릭하면 다음 칸", 24, new Color(0.8f, 0.8f, 0.8f), TextAlignmentOptions.Right, new Vector2(1, 0), new Vector2(-230, 40), new Vector2(420, 44));
+
+        viewer.font = font;
+        viewer.bubbleSprite = uiSprite;
+
+        root.SetAsLastSibling();
+        root.gameObject.SetActive(false);
+        EditorUtility.SetDirty(viewer);
     }
 
     // ---------- 도우미 ----------

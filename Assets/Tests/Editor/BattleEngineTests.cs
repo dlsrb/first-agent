@@ -449,6 +449,20 @@ public class BattleEngineTests
     }
 
     [Test]
+    public void BossPhase_IntentNote_PrependsTelegraph_TextOnly()
+    {
+        var m = Monster(hp: 40, atk: 10, def: 0);
+        m.actions[0].telegraphVague = "[휘두른다]";
+        m.phases.Add(new BossPhase { trigger = PhaseTrigger.HpBelow, hpPercent = 50, intentNote = "[도망칠 준비를 한다.]" });
+        var e = Engine(Player(), m);
+        Assert.AreEqual("[휘두른다]", e.IntentText);
+        Attack(e, 6, 6);                       // 12×2 + 5 = 29 → 11 남음 (27.5%)
+        Assert.AreEqual(0, e.PhaseIndex);
+        Assert.AreEqual("[도망칠 준비를 한다.]\n[휘두른다]", e.IntentText);
+        Assert.AreEqual(BattleOutcome.None, e.Outcome, "문구만, 실제로 도망가지 않음");
+    }
+
+    [Test]
     public void FirstStrike_MonsterActsBeforeTurnOne()
     {
         var p = Player(def: 0);
