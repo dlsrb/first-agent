@@ -1,6 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
+// 장소 내부 화면 (PlaceInteriorPanel에 부착)
+// [A-3] 상호작용 버튼은 PlaceData.interactions 목록대로 템플릿을 복제해 만든다.
 public class InteractionController : MonoBehaviour
 {
     [Header("상호작용 결과 UI")]
@@ -18,13 +22,37 @@ public class InteractionController : MonoBehaviour
     public TMP_Text npcNameText;
     public TMP_Text dialogueText;
 
-    // 현재 장소 데이터
-    private LocationData currentLocationData;
+    // [A-3 추가]
+    [Header("상호작용 버튼")]
+    [Tooltip("InteractionArea 안의 꺼진 버튼. 장소 데이터의 상호작용 개수만큼 복제된다")]
+    public Button interactionButtonTemplate;
 
-    // 장소 데이터 전달받기
-    public void SetLocationData(LocationData data)
+    [Header("이미지 (데이터가 비어 있으면 회색 그대로)")]
+    public Image characterImage;
+    public Image interiorBackgroundImage;
+
+    // 현재 장소 데이터
+    private PlaceData currentPlace;
+
+    // 지금 열려 있는 대화 (선택지를 고를 때 사용)
+    private PlaceInteraction currentTalk;
+
+    // 템플릿에서 만든 버튼들
+    private readonly List<Button> spawnedButtons = new List<Button>();
+
+    // 데이터에 이미지가 없을 때 되돌릴 기본 모양
+    private bool defaultsSaved;
+    private Sprite defaultCharacterSprite;
+    private Color defaultCharacterColor;
+    private Sprite defaultBackgroundSprite;
+    private Color defaultBackgroundColor;
+
+    // 장소 데이터 전달받기 (LocationSelector가 진입 시 호출)
+    public void SetPlaceData(PlaceData data)
     {
-        currentLocationData = data;
+        SaveDefaults();
+
+        currentPlace = data;
 
         // 새로운 장소에 들어가면 이전 결과 초기화
         if (interactionResultText != null)
@@ -32,118 +60,181 @@ public class InteractionController : MonoBehaviour
             interactionResultText.text = "";
         }
 
-        // [8일차 추가] 새로운 장소에 들어가면 이전 선택지 숨기기
-        HideChoices();
-
-        // [9일차 추가] 새로운 장소에 들어가면 대화창 닫기
+        // 새로운 장소에 들어가면 대화창·선택지 닫기 (진행 상태는 GameStateManager에 유지)
         CloseDialogue();
+
+        ApplyBackground();
+        BuildInteractionButtons();
     }
 
-    // 진열대 조사
-    public void InvestigateShelf()
+    // [8일차 추가] 선택지 A 선택 (ChoiceAButton OnClick)
+    public void ChooseA()
     {
-        if (currentLocationData == null)
-        {
-            Debug.LogWarning("현재 장소 데이터가 연결되지 않았습니다.");
-            return;
-        }
+        Choose(0);
+    }
 
-        // [8일차 추가] 다른 행동을 하면 선택지 숨기기
+    // [8일차 추가] 선택지 B 선택 (ChoiceBButton OnClick)
+    public void ChooseB()
+    {
+        Choose(1);
+    }
+
+    // [9일차 추가] 대화창 닫기 (CloseDialogueButton OnClick)
+    public void CloseDialogue()
+    {
         HideChoices();
 
-        DisplayResult(currentLocationData.shelfResult);
+        currentTalk = null;
+
+        if (dialoguePanel != null)
+        {
+            dialoguePanel.SetActive(false);
+        }
     }
 
-    // 점원과 대화
-    public void TalkToClerk()
+    // ---- 상호작용 버튼 ----
+
+    private void BuildInteractionButtons()
     {
-        if (currentLocationData == null)
+        foreach (Button old in spawnedButtons)
+        {
+            if (old != null)
+            {
+                Destroy(old.gameObject);
+            }
+        }
+
+        spawnedButtons.Clear();
+
+        if (interactionButtonTemplate == null)
+        {
+            Debug.LogWarning("InteractionButtonTemplate이 연결되지 않았습니다.");
+            return;
+        }
+
+        interactionButtonTemplate.gameObject.SetActive(false);
+
+        if (currentPlace == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < currentPlace.interactions.Count; i++)
+        {
+            PlaceInteraction interaction = currentPlace.interactions[i];
+
+            if (interaction == null)
+            {
+                continue;
+            }
+
+            Button button = Instantiate(
+                interactionButtonTemplate,
+                interactionButtonTemplate.transform.parent
+            );
+
+            button.name = "Interaction_" + InteractionIdOf(interaction, i);
+
+            TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
+
+            if (label != null)
+            {
+                label.text = interaction.label;
+            }
+
+            button.onClick.AddListener(() => OnInteraction(interaction));
+            button.gameObject.SetActive(true);
+
+            spawnedButtons.Add(button);
+        }
+    }
+
+    private void OnInteraction(PlaceInteraction interaction)
+    {
+        if (currentPlace == null)
         {
             Debug.LogWarning("현재 장소 데이터가 연결되지 않았습니다.");
             return;
         }
 
-        // [10일차 변경] 이미 선택지를 골랐으면 재방문 대사만 표시
-        // [A단계] 상태는 GameStateManager에서 조회
-        if (GameStateManager.Instance.HasChosenClerkChoice(CurrentLocationId()))
+        switch (interaction.type)
         {
-            OpenDialogue(currentLocationData.clerkRepeatDialogue);
+            case InteractionType.Investigate:
+                // [8일차 추가] 다른 행동을 하면 선택지 숨기기
+                HideChoices();
+                DisplayResult(interaction.resultText);
+                break;
+
+            case InteractionType.Talk:
+                StartTalk(interaction);
+                break;
+        }
+    }
+
+    // ---- 대화 ----
+
+    private void StartTalk(PlaceInteraction interaction)
+    {
+        TalkData talk = interaction.talk;
+
+        if (talk == null)
+        {
+            Debug.LogWarning(interaction.label + "에 대화 데이터가 없습니다.");
+            return;
+        }
+
+        currentTalk = interaction;
+
+        string chosenKey = StateKeys.TalkChosen(
+            LocationIdOf(currentPlace),
+            InteractionIdOf(interaction, currentPlace.interactions.IndexOf(interaction))
+        );
+
+        // [10일차] 이미 선택지를 골랐으면 재방문 대사만 표시
+        if (GameStateManager.Instance.HasFlag(chosenKey))
+        {
+            OpenDialogue(talk.npc, talk.repeatLine);
             HideChoices();
         }
         else
         {
-            // [9일차 변경] 결과 텍스트 대신 대화창에 이름과 대사 표시
-            OpenDialogue(currentLocationData.clerkResult);
-
-            // [8일차 추가] 점원 대사 후 선택지 보여주기
-            ShowChoices();
+            OpenDialogue(talk.npc, talk.firstLine);
+            ShowChoices(talk.choices);
         }
     }
 
-    // 수상한 사람 조사
-    public void InvestigateSuspiciousPerson()
+    private void Choose(int index)
     {
-        if (currentLocationData == null)
+        if (currentPlace == null || currentTalk == null)
         {
-            Debug.LogWarning("현재 장소 데이터가 연결되지 않았습니다.");
+            Debug.LogWarning("열려 있는 대화가 없습니다.");
             return;
         }
 
-        // [8일차 추가] 다른 행동을 하면 선택지 숨기기
-        HideChoices();
+        List<TalkChoice> choices = currentTalk.talk.choices;
 
-        DisplayResult(currentLocationData.suspiciousPersonResult);
-    }
-
-    // [8일차 추가] 선택지 A 선택
-    public void ChooseA()
-    {
-        if (currentLocationData == null)
+        if (index >= choices.Count)
         {
-            Debug.LogWarning("현재 장소 데이터가 연결되지 않았습니다.");
+            Debug.LogWarning("선택지 " + index + "번 데이터가 없습니다.");
             return;
         }
 
-        // [10일차 추가] 이 장소에서 선택했다는 상태 기록
-        GameStateManager.Instance.MarkClerkChoice(CurrentLocationId());
+        string locationId = LocationIdOf(currentPlace);
+        string interactionId = InteractionIdOf(currentTalk, currentPlace.interactions.IndexOf(currentTalk));
 
-        // [9일차 변경] 대화창을 닫고 결과는 결과 텍스트에 표시
+        // 선택했음 + 어떤 선택지를 골랐는지 기록
+        GameStateManager.Instance.SetFlag(StateKeys.TalkChosen(locationId, interactionId));
+        GameStateManager.Instance.SetFlag(StateKeys.TalkChoice(locationId, interactionId, index));
+
+        string result = choices[index].result;
+
+        // [9일차] 대화창을 닫고 결과는 결과 텍스트에 표시
         CloseDialogue();
-        DisplayResult(currentLocationData.choiceAResult);
-    }
-
-    // [8일차 추가] 선택지 B 선택
-    public void ChooseB()
-    {
-        if (currentLocationData == null)
-        {
-            Debug.LogWarning("현재 장소 데이터가 연결되지 않았습니다.");
-            return;
-        }
-
-        // [10일차 추가] 이 장소에서 선택했다는 상태 기록
-        GameStateManager.Instance.MarkClerkChoice(CurrentLocationId());
-
-        // [9일차 변경] 대화창을 닫고 결과는 결과 텍스트에 표시
-        CloseDialogue();
-        DisplayResult(currentLocationData.choiceBResult);
-    }
-
-    // [A단계] 상태 키로 쓸 장소 ID. 비어 있으면 장소 이름으로 대신하고 경고
-    private string CurrentLocationId()
-    {
-        if (string.IsNullOrEmpty(currentLocationData.locationId))
-        {
-            Debug.LogWarning(currentLocationData.locationName + "의 locationId가 비어 있어 장소 이름을 대신 사용합니다.");
-            return currentLocationData.locationName;
-        }
-
-        return currentLocationData.locationId;
+        DisplayResult(result);
     }
 
     // [9일차 추가] 대화창 열기
-    // [10일차 변경] 보여줄 대사를 받아서 표시
-    private void OpenDialogue(string dialogue)
+    private void OpenDialogue(NpcData npc, string line)
     {
         if (dialoguePanel == null)
         {
@@ -153,30 +244,26 @@ public class InteractionController : MonoBehaviour
 
         if (npcNameText != null)
         {
-            npcNameText.text = currentLocationData.npcName;
+            npcNameText.text = npc != null ? npc.npcName : "";
         }
 
         if (dialogueText != null)
         {
-            dialogueText.text = dialogue;
+            dialogueText.text = line;
+        }
+
+        if (characterImage != null)
+        {
+            bool hasPortrait = npc != null && npc.portrait != null;
+            characterImage.sprite = hasPortrait ? npc.portrait : defaultCharacterSprite;
+            characterImage.color = hasPortrait ? Color.white : defaultCharacterColor;
         }
 
         dialoguePanel.SetActive(true);
     }
 
-    // [9일차 추가] 대화창 닫기 (닫기 버튼에 연결)
-    public void CloseDialogue()
-    {
-        HideChoices();
-
-        if (dialoguePanel != null)
-        {
-            dialoguePanel.SetActive(false);
-        }
-    }
-
-    // [8일차 추가] 선택지 보여주기
-    private void ShowChoices()
+    // [8일차 추가] 선택지 보여주기 (현재 UI는 최대 2개)
+    private void ShowChoices(List<TalkChoice> choices)
     {
         if (choicePanel == null)
         {
@@ -184,18 +271,41 @@ public class InteractionController : MonoBehaviour
             return;
         }
 
-        // 현재 장소의 선택지 문구를 버튼에 넣기
-        if (choiceAButtonText != null)
+        if (choices == null || choices.Count == 0)
         {
-            choiceAButtonText.text = currentLocationData.choiceAText;
+            HideChoices();
+            return;
         }
 
-        if (choiceBButtonText != null)
+        if (choices.Count > 2)
         {
-            choiceBButtonText.text = currentLocationData.choiceBText;
+            Debug.LogWarning("선택지가 " + choices.Count + "개입니다. 현재 UI는 2개까지만 표시합니다.");
         }
+
+        SetChoiceButton(choiceAButtonText, choices.Count > 0 ? choices[0] : null);
+        SetChoiceButton(choiceBButtonText, choices.Count > 1 ? choices[1] : null);
 
         choicePanel.SetActive(true);
+    }
+
+    private void SetChoiceButton(TMP_Text buttonText, TalkChoice choice)
+    {
+        if (buttonText == null)
+        {
+            return;
+        }
+
+        Button button = buttonText.GetComponentInParent<Button>(true);
+
+        if (button != null)
+        {
+            button.gameObject.SetActive(choice != null);
+        }
+
+        if (choice != null)
+        {
+            buttonText.text = choice.text;
+        }
     }
 
     // [8일차 추가] 선택지 숨기기
@@ -217,5 +327,65 @@ public class InteractionController : MonoBehaviour
         }
 
         interactionResultText.text = result;
+    }
+
+    // ---- 이미지 ----
+
+    private void SaveDefaults()
+    {
+        if (defaultsSaved)
+        {
+            return;
+        }
+
+        if (characterImage != null)
+        {
+            defaultCharacterSprite = characterImage.sprite;
+            defaultCharacterColor = characterImage.color;
+        }
+
+        if (interiorBackgroundImage != null)
+        {
+            defaultBackgroundSprite = interiorBackgroundImage.sprite;
+            defaultBackgroundColor = interiorBackgroundImage.color;
+        }
+
+        defaultsSaved = true;
+    }
+
+    private void ApplyBackground()
+    {
+        if (interiorBackgroundImage == null)
+        {
+            return;
+        }
+
+        bool hasBackground = currentPlace != null && currentPlace.interiorBackground != null;
+        interiorBackgroundImage.sprite = hasBackground ? currentPlace.interiorBackground : defaultBackgroundSprite;
+        interiorBackgroundImage.color = hasBackground ? Color.white : defaultBackgroundColor;
+    }
+
+    // ---- ID (비어 있으면 대체값 + 경고) ----
+
+    private static string LocationIdOf(PlaceData place)
+    {
+        if (!StateKeys.IsValidId(place.locationId))
+        {
+            Debug.LogWarning(place.name + "의 locationId가 올바르지 않아 에셋 이름을 대신 사용합니다.");
+            return place.name;
+        }
+
+        return place.locationId;
+    }
+
+    private static string InteractionIdOf(PlaceInteraction interaction, int index)
+    {
+        if (!StateKeys.IsValidId(interaction.interactionId))
+        {
+            Debug.LogWarning("상호작용 '" + interaction.label + "'의 interactionId가 올바르지 않아 순번을 대신 사용합니다.");
+            return "i" + index;
+        }
+
+        return interaction.interactionId;
     }
 }

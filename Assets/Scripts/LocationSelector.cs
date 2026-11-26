@@ -209,9 +209,8 @@ public class LocationSelector : MonoBehaviour
             targetCameraSize = zoomedCameraSize;
         }
 
-        // 선택한 지역의 데이터 가져오기
-        LocationData data =
-            location.GetComponent<LocationData>();
+        // 선택한 지역의 데이터 가져오기 (A-3: LocationMarker → PlaceData 에셋)
+        PlaceData data = GetPlaceData(location);
 
         if (data != null)
         {
@@ -222,13 +221,13 @@ public class LocationSelector : MonoBehaviour
 
             if (locationNameText != null)
             {
-                locationNameText.text = data.locationName;
+                locationNameText.text = data.placeName;
             }
 
             if (locationTypeText != null)
             {
                 locationTypeText.text =
-                    data.locationType.ToString();
+                    data.placeType.ToString();
             }
 
             if (locationDescriptionText != null)
@@ -237,16 +236,24 @@ public class LocationSelector : MonoBehaviour
                     data.description;
             }
 
-            Debug.Log("장소 이름: " + data.locationName);
-            Debug.Log("장소 유형: " + data.locationType);
+            Debug.Log("장소 이름: " + data.placeName);
+            Debug.Log("장소 유형: " + data.placeType);
             Debug.Log("장소 설명: " + data.description);
         }
-        else
+    }
+
+    // 장소 오브젝트의 LocationMarker에서 PlaceData를 꺼낸다. 없으면 경고 후 null
+    PlaceData GetPlaceData(GameObject location)
+    {
+        LocationMarker marker = location.GetComponent<LocationMarker>();
+
+        if (marker == null || marker.place == null)
         {
-            Debug.LogWarning(
-                location.name + "에 LocationData가 없습니다."
-            );
+            Debug.LogWarning(location.name + "에 LocationMarker 또는 PlaceData가 연결되지 않았습니다.");
+            return null;
         }
+
+        return marker.place;
     }
 
     void UpdatePanelPosition()
@@ -351,21 +358,17 @@ public class LocationSelector : MonoBehaviour
             return;
         }
 
-        LocationData data =
-            selectedLocation.GetComponent<LocationData>();
+        PlaceData data = GetPlaceData(selectedLocation);
 
         if (data == null)
         {
-            Debug.LogWarning(
-                "선택한 지역에 LocationData가 없습니다."
-            );
             return;
         }
 
         // 현재 장소 데이터를 상호작용 시스템에 전달
         if (interactionController != null)
         {
-            interactionController.SetLocationData(data);
+            interactionController.SetPlaceData(data);
         }
         else
         {
@@ -375,7 +378,7 @@ public class LocationSelector : MonoBehaviour
         // 장소 이름 표시
         if (placeNameText != null)
         {
-            placeNameText.text = data.locationName;
+            placeNameText.text = data.placeName;
         }
 
         // 장소 설명 표시
@@ -393,7 +396,7 @@ public class LocationSelector : MonoBehaviour
         // 장소 내부 화면 표시
         placeInteriorPanel.SetActive(true);
 
-        Debug.Log(data.locationName + "에 진입했습니다.");
+        Debug.Log(data.placeName + "에 진입했습니다.");
     }
 
     public void ExitPlace()

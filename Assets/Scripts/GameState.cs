@@ -7,6 +7,6 @@ using System.Collections.Generic;
 [System.Serializable]
 public class GameState
 {
-    // 이미 일어난 일을 문자열 키로 기록. 예: "clerkChoice:normal"
+    // 이미 일어난 일을 문자열 키로 기록. 키는 StateKeys에서만 만든다. 예: "talk:normal:clerk"
     public List<string> flags = new List<string>();
 }

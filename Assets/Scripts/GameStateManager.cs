@@ -43,7 +43,7 @@ public class GameStateManager : MonoBehaviour
         instance = this;
     }
 
-    // ---- 범용 플래그 ----
+    // ---- 플래그 (키는 반드시 StateKeys로 만든다) ----
 
     public bool HasFlag(string key)
     {
@@ -56,23 +56,6 @@ public class GameStateManager : MonoBehaviour
         {
             state.flags.Add(key);
         }
-    }
-
-    // ---- 점원 대화 ----
-
-    public bool HasChosenClerkChoice(string locationId)
-    {
-        return HasFlag(ClerkChoiceKey(locationId));
-    }
-
-    public void MarkClerkChoice(string locationId)
-    {
-        SetFlag(ClerkChoiceKey(locationId));
-    }
-
-    private static string ClerkChoiceKey(string locationId)
-    {
-        return "clerkChoice:" + locationId;
     }
 
     // ---- E단계 세이브/로드용 ----
