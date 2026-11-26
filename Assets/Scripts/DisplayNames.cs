@@ -40,6 +40,32 @@ public static class DisplayNames
         }
     }
 
+    // [C-2] 스탯 이름
+    public static string Stat(StatType stat)
+    {
+        switch (stat)
+        {
+            case StatType.Strength: return "힘";
+            case StatType.Agility: return "민첩";
+            case StatType.Spirit: return "정신력";
+            case StatType.Intellect: return "지능";
+            case StatType.Charm: return "매력";
+            default: return stat.ToString();
+        }
+    }
+
+    // [C-2] 장비 등급
+    public static string Grade(ItemGrade grade)
+    {
+        switch (grade)
+        {
+            case ItemGrade.Common: return "일반";
+            case ItemGrade.Advanced: return "고급";
+            case ItemGrade.Rare: return "희귀";
+            default: return grade.ToString();
+        }
+    }
+
     // 지도 정보창 유형 줄
     public static string PlaceTypeLine(PlaceData.PlaceType type)
     {

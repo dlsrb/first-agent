@@ -26,6 +26,14 @@ public static class IntegrationTestRunner
     const string CHA = "Canvas/PlaceInteriorPanel/DialoguePanel/ChoicePanel/ChoiceAButton";
     const string CHB = "Canvas/PlaceInteriorPanel/DialoguePanel/ChoicePanel/ChoiceBButton";
     const BindingFlags NonPublic = BindingFlags.NonPublic | BindingFlags.Instance;
+    // [C-2] 상점·병원
+    const string SHOP_EXIT = "Canvas/ShopPanel/Window/ExitButton";
+    const string SHOP_ROW = "Canvas/ShopPanel/Window/Row";
+    const string CONFIRM_OK = "Canvas/ShopPanel/Window/ConfirmPopup/ConfirmBox/ConfirmOkButton";
+    const string CONFIRM_ALT = "Canvas/ShopPanel/Window/ConfirmPopup/ConfirmBox/ConfirmAltButton";
+    const string HOSP_HEAL = "Canvas/HospitalPanel/Window/HealButton";
+    const string HOSP_CLOSE = "Canvas/HospitalPanel/Window/CloseButton";
+    const string RESPAWN_NOTICE = "[이 병원이 복귀 지점이 되었다]";
 
     class Step
     {
@@ -48,6 +56,11 @@ public static class IntegrationTestRunner
 
     // true면 전투 장소를 끝까지 싸운다 (B단계 통합 테스트)
     static bool fullBattles;
+
+    // [C-2] 경제 흐름 확인용 기준값 (mark 단계에서 저장)
+    static int markGold, markFood;
+    static ShopController shopUi;
+    static EconomySettings eco;
 
     [MenuItem("요원/(개발) 통합 테스트 실행")]
     public static string Run()
@@ -75,6 +88,8 @@ public static class IntegrationTestRunner
         mapView = UnityEngine.Object.FindAnyObjectByType<MapView>();
         selector = UnityEngine.Object.FindAnyObjectByType<LocationSelector>();
         battle = selector.battleController;
+        shopUi = UnityEngine.Object.FindAnyObjectByType<ShopController>(FindObjectsInactive.Include);
+        eco = battle.economy;
         canvas = GameObject.Find("Canvas").transform;
         region = mapView.startRegion;
 
@@ -140,9 +155,15 @@ public static class IntegrationTestRunner
                     continue;
                 }
 
-                Add("click", ENTER, "interior,!battle,result=,buttons=" + p.interactions.Count + ",bgOpaque,backCovered");
+                // [C-2] 조건으로 숨은 상호작용은 버튼이 없어야 함. 병원은 들어가면 복귀 지점 안내
+                var gs = GameStateManager.Instance.State;
+                var shown = p.interactions.FindAll(x => ConditionChecker.Check(gs, x.condition) || !x.condition.hideIfUnmet);
+                string hiddenChecks = "";
+                foreach (var x in p.interactions) if (!shown.Contains(x)) hiddenChecks += ",!btn:" + x.interactionId;
+                Add("click", ENTER, "interior,!battle," + (p.IsHospital ? "notice,respawnIs:" + p.locationId : "result=") +
+                    ",buttons=" + shown.Count + hiddenChecks + ",bgOpaque,backCovered");
 
-                foreach (var it in p.interactions)
+                foreach (var it in shown)
                 {
                     var btn = IA + it.interactionId;
                     var key = p.locationId + ":" + it.interactionId;
@@ -150,6 +171,21 @@ public static class IntegrationTestRunner
                     if (it.type == InteractionType.Investigate)
                     {
                         Add("click", btn, "resultIs:" + key + (it.revealsMonster != null ? ",infoFlag:" + it.revealsMonster.monsterId : ""));
+                        continue;
+                    }
+
+                    if (it.type == InteractionType.Shop)
+                    {
+                        int rows = Mathf.Min(4, it.shop.entries.FindAll(x => x.item != null && (ConditionChecker.Check(gs, x.condition) || !x.condition.hideIfUnmet)).Count);
+                        Add("click", btn, "shopOpen,tab=Buy,shopRows=" + rows + (it.shop.canSell ? ",sellTab" : ",!sellTab") + ",allBlocked");
+                        Add("click", SHOP_EXIT, "!shopOpen,interior");
+                        continue;
+                    }
+
+                    if (it.type == InteractionType.Hospital)
+                    {
+                        Add("click", btn, "hospOpen,allBlocked");
+                        Add("click", HOSP_CLOSE, "!hospOpen,interior");
                         continue;
                     }
 
@@ -237,6 +273,8 @@ public static class IntegrationTestRunner
             Add("prepBattle", "flee", "");
             Add("click", ENTER, "battle");
             Add("battleFull", fightPlace.locationId, "fled,!battle,map=" + fightArea.area.areaId);
+
+            BuildEconomyFlow(fightArea.area, fightPlace);
         }
     }
 
@@ -449,6 +487,121 @@ public static class IntegrationTestRunner
         SessionState.SetString("it_log", log + "(running " + index + "/" + steps.Count + " pass=" + pass + " fail=" + fail + ")");
     }
 
+    // ---------- [C-2] 경제 흐름: 전투 → 골드 → 병원 치료 → 장비 구매·장착 → 강화 → 판매 → 히든 상점 → 편의점 ----------
+    // 지금 위치: fightArea 구역 맵 (선택 없음)
+    static void BuildEconomyFlow(AreaData fightArea, PlaceData fightPlace)
+    {
+        AreaData hospArea = null, shopArea = null, storeArea = null;
+        PlaceData hosp = null, shopPlace = null, store = null;
+
+        foreach (var ae in region.areas)
+        {
+            foreach (var pe in ae.area.places)
+            {
+                var pl = pe.place;
+                if (pl.IsHospital && hosp == null) { hosp = pl; hospArea = ae.area; }
+                foreach (var it in pl.interactions)
+                {
+                    if (it.type != InteractionType.Shop || it.shop == null) continue;
+                    if (it.shop.canEnhance && shopPlace == null) { shopPlace = pl; shopArea = ae.area; }
+                    if (!it.shop.canSell && it.shop.entries.Exists(x => x.item != null && x.item.type == ItemType.Consumable) && store == null) { store = pl; storeArea = ae.area; }
+                }
+            }
+        }
+
+        if (hosp == null || shopPlace == null || store == null)
+        {
+            Add("noop", "", "economyPlacesMissing");
+            return;
+        }
+
+        var equipIt = shopPlace.interactions.Find(x => x.type == InteractionType.Shop && x.shop.canEnhance);
+        var hiddenIt = shopPlace.interactions.Find(x => x.type == InteractionType.Shop && !x.condition.IsEmpty);
+        var advWeapon = equipIt.shop.entries.Find(x => x.item.type == ItemType.Weapon && x.item.grade == ItemGrade.Advanced).item;
+        var commonWeapon = equipIt.shop.entries.Find(x => x.item.type == ItemType.Weapon && x.item.grade == ItemGrade.Common).item;
+        var storeIt = store.interactions.Find(x => x.type == InteractionType.Shop);
+        var food = storeIt.shop.entries.Find(x => x.item.type == ItemType.Consumable && x.item.healHp > 0).item;
+        int baseAtk = battle.settings.playerBase.attack;
+        int heal = eco.HospitalCost(new PlayerState());
+        string cur = fightArea.areaId;
+
+        // 1) 새 주인공(시작 장비·골드 0)으로 일반 전투 승리 → 골드
+        Add("newPlayer", "", "gold=0,weaponIs:" + commonWeapon.itemId);
+        Add("mark", "", "");
+        Add("sel", "place:" + fightPlace.locationId, "info");
+        Add("prepBattle", "", "");
+        Add("click", ENTER, "battle");
+        Add("battleFull", fightPlace.locationId, "won,rewarded:Normal,goldMore,!battle,map=" + cur);
+
+        // 2) 다친 상태(테스트 지름길)로 병원 → 복귀 지점 등록 → 전체 치료 (직급별 고정비). 다시 누르면 치료할 곳 없음(돈 안 냄)
+        Add("hurt", "", "");
+        Add("mark", "", "");
+        GoToArea(ref cur, hospArea);
+        Add("sel", "place:" + hosp.locationId, "info");
+        Add("click", ENTER, "interior,notice,respawnIs:" + hosp.locationId);
+        Add("click", IA + hosp.interactions.Find(x => x.type == InteractionType.Hospital).interactionId, "hospOpen");
+        Add("click", HOSP_HEAL, "fullHp,goldDelta=-" + heal + ",hospMsg");
+        Add("click", HOSP_HEAL, "goldDelta=-" + heal);
+        Add("click", HOSP_CLOSE, "!hospOpen");
+        Add("click", EXIT, "info,!interior");
+
+        // 3) 특수 상점: 히든 상점 버튼 없음 → 고급 무기 "구매 후 장착"
+        Add("grant", "", "");   // 테스트 지름길: 골드 1,000 + 강화석 3개로 맞춤 (일반 전투 약 25회 분)
+        GoToArea(ref cur, shopArea);
+        Add("sel", "place:" + shopPlace.locationId, "info");
+        Add("click", ENTER, "interior" + (hiddenIt != null ? ",!btn:" + hiddenIt.interactionId : ""));
+        Add("click", IA + equipIt.interactionId, "shopOpen,tab=Buy,noRare,sellTab");
+        Add("mark", "", "");
+        Add("clickRow", "item:" + advWeapon.itemId, "confirm");
+        Add("click", CONFIRM_ALT, "!confirm,weaponIs:" + advWeapon.itemId + ",attack=" + (baseAtk + advWeapon.attackBonus) +
+            ",goldDelta=-" + advWeapon.price + ",skills=" + advWeapon.skills.Count + ",shopMsg");
+
+        // 4) 강화 탭: 장착 무기 +1 (골드 + 강화석)
+        Add("click", "Canvas/ShopPanel/Window/EnhanceTab", "tab=Enhance");
+        Add("mark", "", "");
+        Add("clickRow", "equippedWeapon", "confirm");
+        Add("click", CONFIRM_OK, "!confirm,weaponEnhance=1,attack=" + (baseAtk + advWeapon.attackBonus + advWeapon.attackPerEnhance) +
+            ",goldDelta=-" + eco.enhanceSteps[0].gold + ",stones=" + (3 - eco.enhanceSteps[0].materials) + ",shopMsg");
+
+        // 5) 판매 탭: 장착 중 무기는 판매 불가, 쓰던 일반 무기 판매
+        Add("click", "Canvas/ShopPanel/Window/SellTab", "tab=Sell,equippedLocked");
+        Add("mark", "", "");
+        Add("clickRow", "item:" + commonWeapon.itemId, "confirm");
+        Add("click", CONFIRM_OK, "!confirm,goldDelta=" + eco.SellPrice(commonWeapon) + ",!owns:" + commonWeapon.itemId + ",shopMsg");
+        Add("click", SHOP_EXIT, "!shopOpen");
+
+        // 6) 히든 상점: 매력 판정은 C-4 → 지금은 구조만 (직접 열어 희귀 장비 목록 확인)
+        if (hiddenIt != null)
+        {
+            Add("openShop", shopPlace.locationId + ":" + hiddenIt.interactionId, "shopOpen,allRare,shopRows=" + hiddenIt.shop.entries.Count + ",!sellTab");
+            Add("click", SHOP_EXIT, "!shopOpen");
+        }
+
+        Add("click", EXIT, "info,!interior");
+
+        // 7) 편의점: 음식 구매 (확인 없이 바로)
+        GoToArea(ref cur, storeArea);
+        Add("sel", "place:" + store.locationId, "info");
+        Add("click", ENTER, "interior");
+        Add("click", IA + storeIt.interactionId, "shopOpen,!sellTab");
+        Add("mark", "", "");
+        Add("clickRow", "item:" + food.itemId, "foodDelta=1,goldDelta=-" + food.price + ",shopMsg");
+        Add("click", SHOP_EXIT, "!shopOpen");
+        Add("click", EXIT, "info,!interior");
+        Add("click", CLOSEX, "!info");
+    }
+
+    static void GoToArea(ref string cur, AreaData target)
+    {
+        if (cur == target.areaId) return;
+        Add("click", BACK, "map=region");
+        Add("sel", "area:" + target.areaId, "info");
+        Add("click", ENTER, "map=" + target.areaId);
+        cur = target.areaId;
+    }
+
+    static PlayerState P => GameStateManager.Instance.State.player;
+
     static string Act(Step s)
     {
         try
@@ -507,6 +660,53 @@ public static class IntegrationTestRunner
                 // 등장 중이면 첫 클릭은 등장 완료 (실제 플레이와 같음)
                 if (ComicViewer.Instance.Animating) ClickPath("Canvas/ComicPanel");
                 ClickPath("Canvas/ComicPanel");
+            }
+            // [C-2]
+            else if (s.kind == "mark")
+            {
+                markGold = P.gold;
+                markFood = P.CountOf("food");
+            }
+            else if (s.kind == "newPlayer")
+            {
+                // 새 게임 주인공 (진행 플래그는 그대로)
+                var np = PlayerState.CreateFrom(battle.settings.playerBase);
+                PlayerStats.Recalculate(np, battle.settings, battle.database);
+                GameStateManager.Instance.State.player = np;
+            }
+            else if (s.kind == "hurt")
+            {
+                P.currentHp = Mathf.Max(1, P.maxHp * 3 / 10);
+                P.currentEnergy = Mathf.Min(P.currentEnergy, 2);
+            }
+            else if (s.kind == "grant")
+            {
+                P.gold += 1000;
+                P.AddItem(eco.materialItem.itemId, 3 - P.CountOf(eco.materialItem.itemId));
+            }
+            else if (s.kind == "openShop")
+            {
+                var kv = s.target.Split(':');
+                shopUi.Open(places[kv[0]].interactions.Find(x => x.interactionId == kv[1]).shop);
+            }
+            else if (s.kind == "clickRow")
+            {
+                int row = -1;
+                for (int i = 0; i < shopUi.Visible.Count; i++)
+                {
+                    var r = shopUi.Visible[i];
+                    bool hit = s.target == "equippedWeapon"
+                        ? r.uid != 0 && r.uid == P.equippedWeaponUid
+                        : r.item != null && "item:" + r.item.itemId == s.target && !P.IsEquipped(r.uid);
+                    if (hit) { row = i; break; }
+                }
+                if (row < 0) return " rowNotFound";
+                var go = GameObject.Find(SHOP_ROW + row + "/ActionButton");
+                if (go == null) return " rowInactive";
+                var sp = Center(go);
+                var h = HandlerAt(sp);
+                if (h != go) return " clickBlockedBy:" + (h == null ? "none" : h.name);
+                ExecuteEvents.Execute(go, new PointerEventData(EventSystem.current) { position = sp }, ExecuteEvents.pointerClickHandler);
             }
             else if (s.kind == "battleExit")
             {
@@ -636,6 +836,37 @@ public static class IntegrationTestRunner
                         canvas.Find("PlaceInteriorPanel/PlaceNameText").GetComponent<TMP_Text>().text == st.defaultRespawnPlace.placeName &&
                         p.currentHp == Mathf.Max(1, Mathf.RoundToInt(p.maxHp * st.reviveHpRatio)) && p.gold == 90;
                 }
+                // [C-2] 상점·병원·경제
+                else if (e == "notice") v = res == RESPAWN_NOTICE;
+                else if (e.StartsWith("respawnIs:")) v = P.respawnPlaceId == e.Substring(10) && P.respawnAreaId == mapNow;
+                else if (e.StartsWith("btn:")) v = GameObject.Find(IA + e.Substring(4)) != null;
+                else if (e == "shopOpen") v = Active("ShopPanel");
+                else if (e == "hospOpen") v = Active("HospitalPanel");
+                else if (e == "sellTab") v = Active("ShopPanel/Window/SellTab");
+                else if (e == "confirm") v = shopUi.ConfirmOpen;
+                else if (e == "shopMsg") v = shopUi.Message != "";
+                else if (e == "hospMsg") v = canvas.Find("HospitalPanel/Window/MessageText").GetComponent<TMP_Text>().text != "";
+                else if (key == "tab") v = shopUi.CurrentTab.ToString() == val;
+                else if (key == "shopRows")
+                {
+                    int n = 0;
+                    for (int i = 0; i < 4; i++) if (Active("ShopPanel/Window/Row" + i)) n++;
+                    v = n == int.Parse(val) && shopUi.Visible.Count == n;
+                }
+                else if (e == "noRare") v = !shopUi.Visible.Exists(r => r.item != null && r.item.grade == ItemGrade.Rare);
+                else if (e == "allRare") v = shopUi.Visible.Count > 0 && shopUi.Visible.TrueForAll(r => r.item != null && r.item.grade == ItemGrade.Rare);
+                else if (e == "equippedLocked") v = shopUi.Visible.Exists(r => P.IsEquipped(r.uid) && !r.enabled) && !shopUi.Visible.Exists(r => P.IsEquipped(r.uid) && r.enabled);
+                else if (key == "gold") v = P.gold == int.Parse(val);
+                else if (e == "goldMore") v = P.gold > markGold;
+                else if (key == "goldDelta") v = P.gold - markGold == int.Parse(val);
+                else if (key == "foodDelta") v = P.CountOf("food") - markFood == int.Parse(val);
+                else if (e == "fullHp") v = P.currentHp == P.maxHp && P.currentEnergy == P.maxEnergy;
+                else if (e.StartsWith("weaponIs:")) { var w = P.FindEquipment(P.equippedWeaponUid); v = w != null && w.itemId == e.Substring(9); }
+                else if (key == "weaponEnhance") { var w = P.FindEquipment(P.equippedWeaponUid); v = w != null && w.enhance == int.Parse(val); }
+                else if (key == "attack") v = P.attack == int.Parse(val);
+                else if (key == "skills") v = P.skillIds.Count == int.Parse(val);
+                else if (key == "stones") v = P.CountOf(eco.materialItem.itemId) == int.Parse(val);
+                else if (e.StartsWith("owns:")) v = P.equipment.Exists(x => x.itemId == e.Substring(5));
                 else if (e.StartsWith("resultIs:")) v = res == FindIt(e.Substring(9)).resultText;
                 else if (e.StartsWith("infoFlag:")) v = g.HasFlag(StateKeys.MonsterInfo(e.Substring(9)));
                 else if (e.StartsWith("line:first:")) v = dlg == FindIt(e.Substring(11)).talk.firstLine;

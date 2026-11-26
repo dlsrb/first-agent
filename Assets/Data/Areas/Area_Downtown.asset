@@ -18,14 +18,12 @@ MonoBehaviour:
   description: "[\uAD6C\uC5ED \uC124\uBA85 \uBBF8\uC815]"
   mapImage: {fileID: 0}
   places:
-  - place: {fileID: 11400000, guid: 9e6f03732608cd7499991a54b8d7cc14, type: 2}
-    mapPosition: {x: 0.375, y: 0.7222222}
+  - place: {fileID: 11400000, guid: ccefc78ef8387dc4fbd0ef46d39ba1f5, type: 2}
+    mapPosition: {x: 0.35, y: 0.72}
   - place: {fileID: 11400000, guid: 2a550e478cc502f4ba9115c112279972, type: 2}
     mapPosition: {x: 0.625, y: 0.8333333}
-  - place: {fileID: 11400000, guid: c6c1dad7d45fcbd45b52f4fa55ae25ec, type: 2}
-    mapPosition: {x: 0.4375, y: 0.3888889}
-  - place: {fileID: 11400000, guid: d22b94da6db6405478407d31b7df99c6, type: 2}
-    mapPosition: {x: 0.59375, y: 0.16666667}
+  - place: {fileID: 11400000, guid: fe0c61f0af07c534cbcf637c319b7d82, type: 2}
+    mapPosition: {x: 0.45, y: 0.35}
   - place: {fileID: 11400000, guid: dd6630007e1b0d142bc532250301771e, type: 2}
     mapPosition: {x: 0.82, y: 0.45}
   encounters:

@@ -36,6 +36,9 @@ public class PlaceData : ScriptableObject
     [Header("전투")]
     public PlaceBattle battle = new PlaceBattle();
 
+    // [C-2] 병원 장소인지 (들어가면 복귀 지점)
+    public bool IsHospital => interactions.Exists(i => i != null && i.type == InteractionType.Hospital);
+
     // Inspector에서 값을 바꿀 때 ID 실수를 바로 알려 준다
     void OnValidate()
     {
@@ -88,11 +91,13 @@ public class PlaceBattle
     public bool allowFlee = true;
 }
 
-// 상호작용 종류. D단계에서 Shop 등을 추가한다.
+// 상호작용 종류. 값 순서는 에셋에 숫자로 저장되므로 끝에만 추가한다
 public enum InteractionType
 {
     Investigate,
-    Talk
+    Talk,
+    Shop,      // [C-2] 상점 창 (shop)
+    Hospital   // [C-2] 병원 창 (전체 치료). 이 상호작용이 있는 장소에 들어가면 복귀 지점이 된다
 }
 
 // 장소 내부 버튼 1개
@@ -116,6 +121,12 @@ public class PlaceInteraction
 
     [Tooltip("[B-1] Investigate: 조사하면 이 괴이의 정보를 얻음 (예고 텍스트가 정확해짐)")]
     public MonsterData revealsMonster;
+
+    [Tooltip("[C-2] Shop: 열 상점")]
+    public ShopData shop;
+
+    [Tooltip("[C-2] 버튼이 보이거나 눌리는 조건 (예: 히든 상점 = 매력 5 이상, 숨김)")]
+    public ConditionSet condition = new ConditionSet();
 }
 
 // 대화 1개 (NPC + 첫 대사 + 선택지 + 재방문 대사)

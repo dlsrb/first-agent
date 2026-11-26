@@ -27,6 +27,10 @@ public class InteractionController : MonoBehaviour
     [Tooltip("InteractionArea 안의 꺼진 버튼. 장소 데이터의 상호작용 개수만큼 복제된다")]
     public Button interactionButtonTemplate;
 
+    [Header("상점·병원 창 (C-2, EconomyUIBuilder가 연결)")]
+    public ShopController shopController;
+    public HospitalController hospitalController;
+
     [Header("이미지 (데이터가 비어 있으면 회색 그대로)")]
     public Image characterImage;
     public Image interiorBackgroundImage;
@@ -137,13 +141,23 @@ public class InteractionController : MonoBehaviour
 
             button.name = "Interaction_" + InteractionIdOf(interaction, i);
 
+            // [C-2] 조건: 못 채우면 숨김(히든) 또는 잠긴 채 표시
+            bool unlocked = ConditionChecker.Check(GameStateManager.Instance.State, interaction.condition);
+
+            if (!unlocked && interaction.condition.hideIfUnmet)
+            {
+                Destroy(button.gameObject);
+                continue;
+            }
+
             TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
 
             if (label != null)
             {
-                label.text = interaction.label;
+                label.text = unlocked ? interaction.label : interaction.label + " " + ConditionChecker.LockedText(interaction.condition);
             }
 
+            button.interactable = unlocked;
             button.onClick.AddListener(() => OnInteraction(interaction));
             button.gameObject.SetActive(true);
 
@@ -176,6 +190,19 @@ public class InteractionController : MonoBehaviour
 
             case InteractionType.Talk:
                 StartTalk(interaction);
+                break;
+
+            // [C-2]
+            case InteractionType.Shop:
+                HideChoices();
+                if (shopController != null) shopController.Open(interaction.shop);
+                else Debug.LogWarning("ShopController가 연결되지 않았습니다.");
+                break;
+
+            case InteractionType.Hospital:
+                HideChoices();
+                if (hospitalController != null) hospitalController.Open(currentPlace);
+                else Debug.LogWarning("HospitalController가 연결되지 않았습니다.");
                 break;
         }
     }
@@ -324,6 +351,12 @@ public class InteractionController : MonoBehaviour
         {
             choicePanel.SetActive(false);
         }
+    }
+
+    // [C-2] 장소에 들어갈 때 안내 문구 (예: 병원 복귀 지점 등록)
+    public void ShowNotice(string text)
+    {
+        DisplayResult(text);
     }
 
     // 결과 출력

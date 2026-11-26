@@ -34,7 +34,35 @@ public class EconomySettings : ScriptableObject
         new EnhanceStep { gold = 400, materials = 3 }
     };
 
+    [Header("직급 (C-2: 병원비. 승급 판정은 C-4)")]
+    public List<RankData> ranks = new List<RankData>
+    {
+        new RankData { rankId = "trainee", rankName = "수습 요원", minLevel = 1, hospitalCost = 10 },
+        new RankData { rankId = "agent", rankName = "요원", minLevel = 10, hospitalCost = 100 },
+        new RankData { rankId = "senior", rankName = "선임 요원", minLevel = 20, hospitalCost = 1000 }
+    };
+
     public int MaxEnhance => enhanceSteps.Count;
+
+    // 주인공의 직급 (rankId가 없거나 비면 첫 직급)
+    public RankData RankOf(PlayerState p)
+    {
+        if (ranks.Count == 0) return null;
+        var r = p != null ? ranks.Find(x => x.rankId == p.rankId) : null;
+        return r ?? ranks[0];
+    }
+
+    public int HospitalCost(PlayerState p)
+    {
+        var r = RankOf(p);
+        return r != null ? r.hospitalCost : 0;
+    }
+
+    // 다음 강화 비용 (최대면 null)
+    public EnhanceStep NextEnhance(int currentLevel)
+    {
+        return currentLevel >= 0 && currentLevel < enhanceSteps.Count ? enhanceSteps[currentLevel] : null;
+    }
 
     public int SellPrice(ItemData item)
     {

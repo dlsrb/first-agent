@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dc22a778c4d57b47ba0c79b3054e2a3, type: 3}
+  m_Name: Shop_Special
+  m_EditorClassIdentifier: 
+  shopId: special
+  shopName: "[\uD2B9\uC218 \uC0C1\uC810 \uBBF8\uC815]"
+  icon: {fileID: 0}
+  keeperName: "[\uC810\uC6D0 \uC774\uB984 \uBBF8\uC815]"
+  keeperImage: {fileID: 0}
+  entries:
+  - item: {fileID: 11400000, guid: 3d5f6830d375d3748a6eb88816ca2c73, type: 2}
+    priceOverride: -1
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  - item: {fileID: 11400000, guid: 7e6b99cbff1f6fd41a3505dd640c2566, type: 2}
+    priceOverride: -1
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  - item: {fileID: 11400000, guid: c4838cbeda2ac084e8092d009140501d, type: 2}
+    priceOverride: -1
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  - item: {fileID: 11400000, guid: 185e81a39841c4d4ab047bee47a34bc9, type: 2}
+    priceOverride: -1
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  canSell: 1
+  canEnhance: 1

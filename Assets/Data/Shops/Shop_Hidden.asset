@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dc22a778c4d57b47ba0c79b3054e2a3, type: 3}
+  m_Name: Shop_Hidden
+  m_EditorClassIdentifier: 
+  shopId: hidden
+  shopName: "[\uD788\uB4E0 \uC0C1\uC810 \uBBF8\uC815]"
+  icon: {fileID: 0}
+  keeperName: "[\uC810\uC6D0 \uC774\uB984 \uBBF8\uC815]"
+  keeperImage: {fileID: 0}
+  entries:
+  - item: {fileID: 11400000, guid: b3851c7aad8ca4f48ba3061d2a83da25, type: 2}
+    priceOverride: -1
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  - item: {fileID: 11400000, guid: 203a7bdb597e63240a1fb9e8b0b46e7a, type: 2}
+    priceOverride: -1
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  canSell: 0
+  canEnhance: 0

@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5acbf94b8caca3346826c5bcdd14a2b4, type: 3}
+  m_Name: Place_Hospital
+  m_EditorClassIdentifier: 
+  locationId: hospital
+  placeName: "[\uBCD1\uC6D0 \uBBF8\uC815]"
+  placeType: 1
+  description: "[\uBCD1\uC6D0 \uC124\uBA85 \uBBF8\uC815]"
+  interiorBackground: {fileID: 0}
+  interactions:
+  - interactionId: heal
+    label: "[\uCE58\uB8CC\uBC1B\uAE30]"
+    type: 3
+    resultText: 
+    talk:
+      npc: {fileID: 0}
+      firstLine: "[\uB300\uC0AC \uBBF8\uC815]"
+      choices: []
+      repeatLine: "[\uC7AC\uBC29\uBB38 \uB300\uC0AC \uBBF8\uC815]"
+    revealsMonster: {fileID: 0}
+    shop: {fileID: 0}
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  battle:
+    mode: 0
+    fixedMonster: {fileID: 0}
+    introComic: {fileID: 0}
+    allowFlee: 1

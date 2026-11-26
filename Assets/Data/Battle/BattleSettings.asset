@@ -37,7 +37,7 @@ MonoBehaviour:
   defeatGoldLossRatio: 0.1
   reviveHpRatio: 0.3
   defaultRespawnArea: {fileID: 11400000, guid: 5202d42ba449be748ba288b9c364756e, type: 2}
-  defaultRespawnPlace: {fileID: 11400000, guid: 2a550e478cc502f4ba9115c112279972, type: 2}
+  defaultRespawnPlace: {fileID: 11400000, guid: ccefc78ef8387dc4fbd0ef46d39ba1f5, type: 2}
   battleCooldownSeconds: 0
   playerBase:
     maxHp: 100

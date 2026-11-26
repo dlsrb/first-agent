@@ -27,6 +27,7 @@ public class PlayerState
     // ---- 성장 (C-1은 경험치 누적만, 레벨 업은 C-4) ----
     public int level = 1;
     public int exp = 0;
+    public string rankId = "trainee";   // C-2: 병원비. 승급은 C-4
 
     // ---- 복귀 지점 (비어 있으면 BattleSettings 기본값) ----
     public string respawnAreaId = "";

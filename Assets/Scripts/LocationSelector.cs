@@ -384,6 +384,19 @@ public class LocationSelector : MonoBehaviour
             Debug.LogWarning("InteractionController가 연결되지 않았습니다.");
         }
 
+        // [C-2] 병원: 들어가면 복귀 지점이 된다 (성장경제규칙 3번)
+        if (data.IsHospital && mapView != null && mapView.CurrentArea != null)
+        {
+            var player = GameStateManager.Instance.State.player;
+            player.respawnAreaId = mapView.CurrentArea.areaId;
+            player.respawnPlaceId = data.locationId;
+
+            if (interactionController != null)
+            {
+                interactionController.ShowNotice("[이 병원이 복귀 지점이 되었다]");
+            }
+        }
+
         // 장소 이름 표시
         if (placeNameText != null)
         {
