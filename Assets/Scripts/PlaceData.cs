@@ -32,6 +32,10 @@ public class PlaceData : ScriptableObject
     [Header("장소 내부 상호작용 (순서 = 버튼 순서)")]
     public List<PlaceInteraction> interactions = new List<PlaceInteraction>();
 
+    // [B-1] 전투 장소 설정 (mode가 None이면 지금처럼 장소 내부)
+    [Header("전투")]
+    public PlaceBattle battle = new PlaceBattle();
+
     // Inspector에서 값을 바꿀 때 ID 실수를 바로 알려 준다
     void OnValidate()
     {
@@ -61,6 +65,29 @@ public class PlaceData : ScriptableObject
     }
 }
 
+public enum BattleMode
+{
+    None,    // 전투 없음 (장소 내부)
+    Random,  // 일반 전투: 들어가면 바로, 구역 조우 목록에서 가중치 랜덤
+    Story    // 스토리 전투: 만화 뒤 고정 괴이
+}
+
+// 장소의 전투 설정
+[System.Serializable]
+public class PlaceBattle
+{
+    public BattleMode mode = BattleMode.None;
+
+    [Tooltip("Story: 고정 괴이")]
+    public MonsterData fixedMonster;
+
+    [Tooltip("Story: 전투 전 만화")]
+    public ComicData introComic;
+
+    [Tooltip("도망 허용 (괴이의 canFlee와 둘 다 true여야 가능)")]
+    public bool allowFlee = true;
+}
+
 // 상호작용 종류. D단계에서 Shop 등을 추가한다.
 public enum InteractionType
 {
@@ -86,6 +113,9 @@ public class PlaceInteraction
 
     [Tooltip("Talk: 대화 내용")]
     public TalkData talk = new TalkData();
+
+    [Tooltip("[B-1] Investigate: 조사하면 이 괴이의 정보를 얻음 (예고 텍스트가 정확해짐)")]
+    public MonsterData revealsMonster;
 }
 
 // 대화 1개 (NPC + 첫 대사 + 선택지 + 재방문 대사)

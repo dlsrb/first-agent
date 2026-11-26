@@ -9,4 +9,7 @@ public class GameState
 {
     // 이미 일어난 일을 문자열 키로 기록. 키는 StateKeys에서만 만든다. 예: "talk:normal:clerk"
     public List<string> flags = new List<string>();
+
+    // [B-1] 주인공 수치 (체력·기력·스탯·주사위·아이템·복귀 장소). initialized가 false면 새 게임으로 채운다
+    public PlayerState player = new PlayerState();
 }

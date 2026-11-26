@@ -2252,6 +2252,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   state:
     flags: []
+    player:
+      initialized: 0
+      currentHp: 0
+      maxHp: 0
+      currentEnergy: 0
+      maxEnergy: 0
+      attack: 0
+      defense: 0
+      critChance: 0
+      agility: 0
+      diceCount: 0
+      diceFaces: 0
+      gold: 0
+      respawnAreaId: 
+      respawnPlaceId: 
+      weaponId: 
+      armorId: 
+      skillIds: []
+      items: []
 --- !u!4 &1050407718
 Transform:
   m_ObjectHideFlags: 0

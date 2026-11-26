@@ -14,6 +14,18 @@ public static class StateKeys
         return TalkChosen(locationId, interactionId) + ":choice=" + choiceIndex;
     }
 
+    // [B-1] 괴이 정보를 얻었음 (예고 텍스트가 정확해지고 공격력·방어력 공개). 예: "info:monster:urban_1"
+    public static string MonsterInfo(string monsterId)
+    {
+        return "info:monster:" + monsterId;
+    }
+
+    // [B-1] 스토리·보스 전투 첫 클리어 (C단계 재도전 보상 감소용). 예: "battle:cleared:mountain_peak"
+    public static string BattleCleared(string locationId)
+    {
+        return "battle:cleared:" + locationId;
+    }
+
     // 키에 쓸 수 있는 ID인지 (비어 있지 않고 ':' 없음)
     public static bool IsValidId(string id)
     {

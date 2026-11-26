@@ -165,6 +165,13 @@ public class InteractionController : MonoBehaviour
                 // [8일차 추가] 다른 행동을 하면 선택지 숨기기
                 HideChoices();
                 DisplayResult(interaction.resultText);
+
+                // [B-1] 괴이 정보를 주는 조사면 정보 플래그 기록
+                if (interaction.revealsMonster != null)
+                {
+                    GameStateManager.Instance.SetFlag(StateKeys.MonsterInfo(interaction.revealsMonster.monsterId));
+                }
+
                 break;
 
             case InteractionType.Talk:

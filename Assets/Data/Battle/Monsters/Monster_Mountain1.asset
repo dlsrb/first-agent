@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9e44cf93aca13249b829958c96c0df9, type: 3}
+  m_Name: Monster_Mountain1
+  m_EditorClassIdentifier: 
+  monsterId: mountain_1
+  monsterName: "[\uAD34\uC774 \uC774\uB984 \uBBF8\uC815: mountain_1]"
+  description: "[\uAD34\uC774 \uC124\uBA85 \uBBF8\uC815]"
+  image: {fileID: 0}
+  bgm: {fileID: 0}
+  sfx: {fileID: 0}
+  maxHp: 37
+  attack: 11
+  defense: 10
+  firstStrike: 0
+  canFlee: 1
+  actions:
+  - actionId: arm_swing
+    actionName: "\uD314 \uD718\uB450\uB974\uAE30"
+    kind: 0
+    damageMultiplier: 1
+    effect: {fileID: 0}
+    weight: 3
+    condition: 0
+    hpBelowPercent: 50
+    telegraphVague: "[\uAD34\uC774\uAC00 \uD314\uC744 \uD06C\uAC8C \uB4E4\uC5B4 \uC62C\uB9B0\uB2E4.]"
+    telegraphClear: "[\uD314\uC744 \uD718\uB458\uB7EC \uACF5\uACA9\uD558\uB824 \uD55C\uB2E4.]"
+  - actionId: spores
+    actionName: "\uD3EC\uC790 \uBFCC\uB9AC\uAE30"
+    kind: 1
+    damageMultiplier: 0
+    effect: {fileID: 11400000, guid: 3e30b1ff004f76542b6cda264bf323e4, type: 2}
+    weight: 2
+    condition: 2
+    hpBelowPercent: 50
+    telegraphVague: "[\uAD34\uC774\uAC00 \uBAB8\uC744 \uBD80\uB974\uB974 \uB5A4\uB2E4.]"
+    telegraphClear: "[\uD3EC\uC790\uB97C \uBFCC\uB824 \uC228\uC744 \uB9C9\uC73C\uB824
+      \uD55C\uB2E4. (\uC785\uB9C9\uAE30)]"
+  phases: []

@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 424d7bb731a2967438719d42f8cb07cf, type: 3}
+  m_Name: BattleSettings
+  m_EditorClassIdentifier: 
+  comboMultipliers:
+  - 2
+  - 5
+  - 10
+  - 20
+  critMultiplier: 1.5
+  minDamage: 1
+  defenseChanceBase: 0.3
+  defenseChanceCap: 0.95
+  touchWindowSeconds: 2
+  touchIncrement: 0.015
+  touchBonusMax: 0.15
+  touchBonusMin: 0.05
+  touchBonusAttackLow: 10
+  touchBonusAttackHigh: 30
+  fleeChanceBase: 0.4
+  fleeChanceMax: 0.9
+  fleeChancePerAgility: 0.01
+  fleeFailDamageMultiplier: 2
+  reflectRatio: 1
+  tauntEffect: {fileID: 11400000, guid: 8d53ab60822c24e4b94701b0728d3eab, type: 2}
+  defeatGoldLossRatio: 0.1
+  reviveHpRatio: 0.3
+  defaultRespawnArea: {fileID: 11400000, guid: 5202d42ba449be748ba288b9c364756e, type: 2}
+  defaultRespawnPlace: {fileID: 11400000, guid: 2a550e478cc502f4ba9115c112279972, type: 2}
+  retryRewardRatio: 0.2
+  battleCooldownSeconds: 0
+  playerBase:
+    maxHp: 100
+    maxEnergy: 10
+    attack: 5
+    defense: 10
+    critChance: 0.05
+    agility: 0
+    diceCount: 2
+    diceFaces: 6
+    startSkills:
+    - {fileID: 11400000, guid: ea16cb0229b62574097749fe78e1b719, type: 2}
+    - {fileID: 11400000, guid: af8ec4f6e1dd955499fa68303de3a96e, type: 2}
+    startItems:
+    - item: {fileID: 11400000, guid: 8f601829246d21f4a8e4f7d4cbaa7b68, type: 2}
+      count: 3

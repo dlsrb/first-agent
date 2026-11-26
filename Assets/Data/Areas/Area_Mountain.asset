@@ -22,3 +22,8 @@ MonoBehaviour:
     mapPosition: {x: 0.4, y: 0.62}
   - place: {fileID: 11400000, guid: edace140368dc36498ba474271dfce8f, type: 2}
     mapPosition: {x: 0.62, y: 0.38}
+  - place: {fileID: 11400000, guid: f9ff2148f5f1cdd40981a1c92fa3b5d3, type: 2}
+    mapPosition: {x: 0.5, y: 0.85}
+  encounters:
+  - monster: {fileID: 11400000, guid: 92d5c1e0435ea36429e18858a1107629, type: 2}
+    weight: 1

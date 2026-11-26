@@ -32,6 +32,10 @@ public class AreaData : ScriptableObject
     [Header("장소 (위치는 지도 안의 비율 좌표 0~1, (0.5, 0.5) = 지도 중앙)")]
     public List<PlaceEntry> places = new List<PlaceEntry>();
 
+    // [B-1] 일반 전투 장소(BattleMode.Random)에서 나오는 괴이 목록
+    [Header("조우 목록 (일반 전투, 가중치 랜덤)")]
+    public List<EncounterEntry> encounters = new List<EncounterEntry>();
+
     void OnValidate()
     {
         if (!StateKeys.IsValidId(areaId))
@@ -39,6 +43,16 @@ public class AreaData : ScriptableObject
             Debug.LogWarning(name + ": areaId가 비었거나 ':'가 들어 있습니다.", this);
         }
     }
+}
+
+// 조우 목록 1줄
+[System.Serializable]
+public class EncounterEntry
+{
+    public MonsterData monster;
+
+    [Tooltip("가중치 (클수록 자주)")]
+    public int weight = 1;
 }
 
 // 구역 맵 위 장소 1개

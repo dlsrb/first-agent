@@ -27,3 +27,9 @@ MonoBehaviour:
       firstLine: "[\uB300\uC0AC \uBBF8\uC815]"
       choices: []
       repeatLine: "[\uC7AC\uBC29\uBB38 \uB300\uC0AC \uBBF8\uC815]"
+    revealsMonster: {fileID: 0}
+  battle:
+    mode: 1
+    fixedMonster: {fileID: 0}
+    introComic: {fileID: 0}
+    allowFlee: 1

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 164494b1111153041a227fe877906a5d, type: 3}
+  m_Name: Comic_BossPhase2
+  m_EditorClassIdentifier: 
+  comicId: boss_phase2
+  pages:
+  - {fileID: 0}
+  - {fileID: 0}
+  bgm: {fileID: 0}
