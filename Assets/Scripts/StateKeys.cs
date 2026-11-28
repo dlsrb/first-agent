@@ -38,6 +38,15 @@ public static class StateKeys
         return "revealed:" + what;
     }
 
+    // [C-6] 시작 흐름 완료 (시작 병원에 들어감 → 모든 장소 열림)
+    public const string IntroDone = "intro:hospital";
+
+    // [11/28] 조사로 아이템을 받았음 (한 번만). 예: "item:taken:hospital:waiting"
+    public static string ItemTaken(string locationId, string interactionId)
+    {
+        return "item:taken:" + locationId + ":" + interactionId;
+    }
+
     // 키에 쓸 수 있는 ID인지 (비어 있지 않고 ':' 없음)
     public static bool IsValidId(string id)
     {

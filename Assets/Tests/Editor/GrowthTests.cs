@@ -88,6 +88,25 @@ public class GrowthTests
     }
 
     [Test]
+    public void AssignPoint_CharmRefused_HiddenStat()
+    {
+        p.statPoints = 1;
+        Assert.IsFalse(GrowthLogic.AssignPoint(p, StatType.Charm));
+        Assert.AreEqual(1, p.statPoints, "포인트는 그대로");
+        Assert.AreEqual(0, p.stats.charm);
+    }
+
+    [Test]
+    public void StatGains_FromItemOrChoice_RaiseCharm()
+    {
+        var gains = new List<StatGain> { new StatGain { stat = StatType.Charm, amount = 1 } };
+        Assert.AreEqual("매력 +1", GrowthLogic.ApplyStatGains(p, gains));
+        PlayerStats.Recalculate(p, settings, db);
+        Assert.AreEqual(1, p.totalStats.charm);
+        Assert.AreEqual(0.01f, p.shopDiscount, 1e-4);
+    }
+
+    [Test]
     public void AssignPoint_UsesPoints()
     {
         Assert.IsFalse(GrowthLogic.AssignPoint(p, StatType.Strength), "포인트 없음");
@@ -134,7 +153,9 @@ public class GrowthTests
         Assert.IsTrue(GrowthLogic.ChooseTalent(p, eco, "all"));
         PlayerStats.Recalculate(p, settings, db);
 
-        Assert.AreEqual(1, p.totalStats.charm, "팔방미인: 스탯 모두 +1");
+        Assert.AreEqual(1, p.totalStats.strength, "팔방미인: 힘·민첩·정신력·지능 +1");
+        Assert.AreEqual(1, p.totalStats.intellect);
+        Assert.AreEqual(0, p.totalStats.charm, "매력은 히든 스탯이라 제외");
         Assert.AreEqual(5 + 1, p.attack);
         Assert.AreEqual(0, GrowthLogic.TalentOptions(p, eco).Count);
         Assert.IsFalse(GrowthLogic.HasPending(p, eco));

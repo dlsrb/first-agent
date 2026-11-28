@@ -43,6 +43,23 @@ public class StatBlock
     }
 }
 
+// [11/28] 스탯 직접 증가 효과 (아이템 사용·대화 선택지 결과에 붙인다. 예: 매력 +1)
+[System.Serializable]
+public class StatGain
+{
+    public StatType stat = StatType.Charm;
+    public int amount = 1;
+}
+
+// [11/28] 스탯 하나의 훈련 기록 (하루 한도 계산용, PlayerState.trainDays)
+[System.Serializable]
+public class TrainDay
+{
+    public string stat = "";
+    public string date = "";   // yyyy-MM-dd (기기 시계)
+    public int count = 0;      // 그날 성공 횟수
+}
+
 // 무기 유형 하나의 숙련도 (PlayerState.masteries)
 [System.Serializable]
 public class MasteryState

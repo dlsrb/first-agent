@@ -50,6 +50,17 @@ public static class RevealScanner
         return found;
     }
 
+    // 스탯이 바뀐 뒤 공통 처리: 드러난 것이 있으면 알림 + 지도 다시 그리기. 드러난 것이 있었는지 돌려준다
+    public static bool ScanAndNotify(MapView mapView, LocationSelector selector)
+    {
+        if (mapView == null) return false;
+        if (Scan(GameStateManager.Instance.State, mapView.CurrentRegion ?? mapView.startRegion) == 0) return false;
+
+        NoticeToast.Show(Notice);
+        if (selector != null) selector.RefreshMap();
+        return true;
+    }
+
     static int Try(GameState state, string what, ConditionSet set)
     {
         if (!ConditionChecker.HasCharm(set) || !ConditionChecker.Check(state, set)) return 0;

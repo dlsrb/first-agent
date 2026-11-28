@@ -246,6 +246,20 @@ public class ShopTests
         Assert.IsFalse(ShopLogic.UseItem(p, stone).ok, "재료는 사용 불가");
     }
 
+    [Test]
+    public void UseItem_StatGainItem_ConsumedAndRaisesCharm()
+    {
+        var perfume = Item("perfume", ItemType.Consumable, 0);
+        perfume.statGains.Add(new StatGain { stat = StatType.Charm, amount = 1 });
+        p.AddItem("perfume", 1);
+
+        var r = ShopLogic.UseItem(p, perfume);
+        Assert.IsTrue(r.ok, "체력이 가득해도 스탯 아이템은 쓸 수 있음");
+        Assert.AreEqual(1, p.stats.charm);
+        Assert.AreEqual(0, p.CountOf("perfume"));
+        Assert.AreEqual("[효과 미정]", ShopLogic.EffectText(perfume), "히든 스탯 아이템은 효과를 밝히지 않음");
+    }
+
     // ---------- 조건 ----------
 
     [Test]

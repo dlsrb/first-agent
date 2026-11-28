@@ -572,7 +572,7 @@ public class BattleEngine
         {
             var item = database.FindItem(stack.itemId);
 
-            if (item != null && item.type == ItemType.Consumable && stack.count > 0)
+            if (item != null && item.type == ItemType.Consumable && stack.count > 0 && (item.healHp > 0 || item.healEnergy > 0))
             {
                 return item;
             }

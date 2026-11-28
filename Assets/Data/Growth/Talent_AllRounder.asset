@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TalentData
   talentId: all_rounder
   talentName: "[\uD314\uBC29\uBBF8\uC778 \uBBF8\uC815]"
-  description: "\uC2A4\uD0EF 5\uAC1C \uBAA8\uB450 +1"
+  description: "\uD798\xB7\uBBFC\uCCA9\xB7\uC815\uC2E0\uB825\xB7\uC9C0\uB2A5 \uBAA8\uB450
+    +1"
   tier: 1
   effects:
   - target: 3

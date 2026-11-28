@@ -28,7 +28,53 @@ MonoBehaviour:
       choices: []
       repeatLine: "[\uC7AC\uBC29\uBB38 \uB300\uC0AC \uBBF8\uC815]"
     revealsMonster: {fileID: 0}
+    givesItem: {fileID: 0}
+    afterGivenText: "[\uB354 \uC774\uC0C1 \uC544\uBB34\uAC83\uB3C4 \uC5C6\uB2E4]"
     shop: {fileID: 0}
+    training:
+      stat: 0
+      baseCost: 80
+      costStep: 40
+      gain: 1
+      limit: 100
+      tapIncrease: 7
+      decayPerSecond: 12
+      duration: 4
+      targetMin: 65
+      targetMax: 85
+      narrowPerTrain: 1
+      minWidth: 8
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  - interactionId: waiting
+    label: "[\uB300\uAE30\uC2E4 \uB458\uB7EC\uBCF4\uAE30]"
+    type: 0
+    resultText: "[\uB300\uAE30\uC2E4 \uC758\uC790 \uBC11\uC5D0\uC11C \uBB34\uC5B8\uAC00\uB97C
+      \uC8FC\uC6E0\uB2E4 \uBBF8\uC815]"
+    talk:
+      npc: {fileID: 0}
+      firstLine: "[\uB300\uC0AC \uBBF8\uC815]"
+      choices: []
+      repeatLine: "[\uC7AC\uBC29\uBB38 \uB300\uC0AC \uBBF8\uC815]"
+    revealsMonster: {fileID: 0}
+    givesItem: {fileID: 11400000, guid: 6c3801b12a060354eb4c563edf7ce03f, type: 2}
+    afterGivenText: "[\uB354 \uC774\uC0C1 \uC544\uBB34\uAC83\uB3C4 \uC5C6\uB2E4 \uBBF8\uC815]"
+    shop: {fileID: 0}
+    training:
+      stat: 0
+      baseCost: 80
+      costStep: 40
+      gain: 1
+      limit: 100
+      tapIncrease: 7
+      decayPerSecond: 12
+      duration: 4
+      targetMin: 65
+      targetMax: 85
+      narrowPerTrain: 1
+      minWidth: 8
     condition:
       all: []
       hideIfUnmet: 0

@@ -20,6 +20,9 @@ public class MapView : MonoBehaviour
 
     public MapMarker markerPrefab;
 
+    [Tooltip("[C-6] 시작 흐름 잠금 규칙 (EconomySettings.startArea·startHospital)")]
+    public EconomySettings economy;
+
     [Header("색 (지도 이미지가 없을 때 배경, 마커 유형별)")]
     public Color emptyMapColor = new Color(0.75f, 0.75f, 0.75f);
     public Color normalColor = new Color(0.45f, 0.55f, 0.7f);
@@ -132,6 +135,12 @@ public class MapView : MonoBehaviour
 
         MapMarker marker = Instantiate(markerPrefab, ToWorld(position), Quaternion.identity, transform);
         marker.Setup(place, area, color);
+
+        // [C-6] 시작 흐름: 시작 구역·시작 병원만 열림
+        if (GameStateManager.Instance != null)
+        {
+            marker.SetLocked(StartFlowController.IsLocked(GameStateManager.Instance.State, economy, place, area));
+        }
         markers.Add(marker);
     }
 

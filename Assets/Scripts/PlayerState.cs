@@ -39,7 +39,8 @@ public class PlayerState
     public string rankId = "trainee";   // C-2: 병원비, C-4: 승급
     public int statPoints = 0;           // [C-4] 레벨 업으로 받은 남은 포인트
     public StatBlock stats = new StatBlock();        // [C-4] 찍은 스탯 (레벨 포인트·훈련)
-    public StatBlock trainCount = new StatBlock();   // [C-5] 스탯별 훈련 횟수
+    public StatBlock trainCount = new StatBlock();   // [C-5] 스탯별 훈련 성공 횟수 (누적 한도·비용·구간)
+    public List<TrainDay> trainDays = new List<TrainDay>();   // [11/28] 스탯별 마지막 훈련 날짜·그날 성공 수 (하루 한도)
     public List<string> talentIds = new List<string>();
     public int pendingTalentPicks = 0;   // 아직 안 고른 재능 수 (새 게임 1, 승급마다 +1)
     public List<MasteryState> masteries = new List<MasteryState>();
@@ -204,6 +205,8 @@ public class PlayerState
         p.trainCount = trainCount.Copy();
         p.totalStats = totalStats.Copy();
         p.talentIds = new List<string>(talentIds);
+        p.trainDays = new List<TrainDay>();
+        foreach (var d in trainDays) p.trainDays.Add(new TrainDay { stat = d.stat, date = d.date, count = d.count });
         p.masteries = new List<MasteryState>();
         foreach (var m in masteries) p.masteries.Add(m.Copy());
         p.items = new List<ItemStack>();

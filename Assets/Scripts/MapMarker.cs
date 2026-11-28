@@ -15,6 +15,18 @@ public class MapMarker : MonoBehaviour
 
     public bool IsArea => Area != null;
 
+    // [C-6] 시작 흐름 동안 잠긴 마커 (회색, 진입 불가)
+    public bool Locked { get; private set; }
+    public static readonly Color LockedColor = new Color(0.45f, 0.45f, 0.45f);
+
+    public void SetLocked(bool locked)
+    {
+        Locked = locked;
+        if (!locked) return;
+        var sr = GetComponent<SpriteRenderer>();
+        if (sr != null) sr.color = LockedColor;
+    }
+
     public string DisplayName => IsArea ? Area.areaName : (Place != null ? Place.placeName : "");
     // [A-5] 한글 표시 (DisplayNames에서 관리)
     public string TypeText => IsArea

@@ -88,6 +88,11 @@ MonoBehaviour:
   infoChancePerIntellect: 0.03
   discountPerCharm: 0.01
   discountMax: 0.2
+  openingComic: {fileID: 11400000, guid: f97fce6bd63807743bab1eaea313c5b7, type: 2}
+  startArea: {fileID: 11400000, guid: 5202d42ba449be748ba288b9c364756e, type: 2}
+  startHospital: {fileID: 11400000, guid: ccefc78ef8387dc4fbd0ef46d39ba1f5, type: 2}
+  trainDailyLimit: 1
+  trainTotalLimit: 10
   startTalents:
   - {fileID: 11400000, guid: 4d5a1580451fcda48bfb0197612c6570, type: 2}
   - {fileID: 11400000, guid: aa277e0662ef784439c24aaeb57d0f20, type: 2}

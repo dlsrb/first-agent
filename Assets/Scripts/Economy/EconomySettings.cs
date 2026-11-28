@@ -62,6 +62,20 @@ public class EconomySettings : ScriptableObject
     public float discountPerCharm = 0.01f;
     public float discountMax = 0.2f;
 
+    [Header("[C-6] 게임 시작 흐름")]
+    [Tooltip("시작 만화 (비어 있으면 건너뜀)")]
+    public ComicData openingComic;
+    [Tooltip("시작 흐름 동안 지역 맵에서 열려 있는 구역")]
+    public AreaData startArea;
+    [Tooltip("시작 흐름 동안 열려 있는 유일한 장소. 들어가면 모든 장소가 열린다")]
+    public PlaceData startHospital;
+
+    [Header("[11/28] 훈련 한도 (오버스탯 방지)")]
+    [Tooltip("스탯마다 하루(기기 날짜, 자정 초기화)에 성공할 수 있는 훈련 횟수")]
+    public int trainDailyLimit = 1;
+    [Tooltip("훈련으로 올릴 수 있는 양의 총합 (스탯마다). 레벨 포인트·재능·아이템은 별도")]
+    public int trainTotalLimit = 10;
+
     [Header("[C-4] 재능 (시작 재능. 승급 재능은 직급 칸)")]
     public List<TalentData> startTalents = new List<TalentData>();
 

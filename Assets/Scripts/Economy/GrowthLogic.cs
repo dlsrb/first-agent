@@ -26,12 +26,35 @@ public static class GrowthLogic
         return gained;
     }
 
+    // 레벨 포인트는 힘·민첩·정신력·지능만 (매력은 히든 스탯 — 아이템·이벤트·대화로만, 성장경제규칙 5번 11/28)
+    public static bool CanAssign(StatType stat)
+    {
+        return stat != StatType.Charm;
+    }
+
     public static bool AssignPoint(PlayerState p, StatType stat)
     {
-        if (p.statPoints <= 0) return false;
+        if (p.statPoints <= 0 || !CanAssign(stat)) return false;
         p.statPoints--;
         p.stats.Add(stat, 1);
         return true;
+    }
+
+    // ---------- [11/28] 스탯 직접 증가 (아이템·대화 선택지·이벤트, 예: 매력 +1) ----------
+
+    public static string ApplyStatGains(PlayerState p, List<StatGain> gains)
+    {
+        if (gains == null) return "";
+        var parts = new List<string>();
+
+        foreach (var g in gains)
+        {
+            if (g == null || g.amount == 0) continue;
+            p.stats.Add(g.stat, g.amount);
+            parts.Add(DisplayNames.Stat(g.stat) + (g.amount > 0 ? " +" : " ") + g.amount);
+        }
+
+        return string.Join(", ", parts);
     }
 
     // ---------- 직급 ----------

@@ -123,6 +123,12 @@ public class PlaceInteraction
     [Tooltip("[B-1] Investigate: 조사하면 이 괴이의 정보를 얻음 (예고 텍스트가 정확해짐)")]
     public MonsterData revealsMonster;
 
+    [Tooltip("[11/28] Investigate: 처음 조사할 때 한 번 주는 아이템 (예: 매력 아이템)")]
+    public ItemData givesItem;
+    [Tooltip("이미 아이템을 받은 뒤 조사 문구")]
+    [TextArea(2, 5)]
+    public string afterGivenText = "[더 이상 아무것도 없다]";
+
     [Tooltip("[C-2] Shop: 열 상점")]
     public ShopData shop;
 
@@ -157,6 +163,9 @@ public class TalkChoice
 
     [Tooltip("[C-4] 이 선택지가 보이는 조건 (매력 조건이면 미달 시 숨김)")]
     public ConditionSet condition = new ConditionSet();
+
+    [Tooltip("[11/28] 이 선택지를 고르면 오르는 스탯 (예: 매력 +1)")]
+    public List<StatGain> statGains = new List<StatGain>();
 
     [TextArea(2, 5)]
     public string result = "[결과 미정]";

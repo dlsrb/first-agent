@@ -178,6 +178,14 @@ public class HomeController : MonoBehaviour
     {
         var r = ShopLogic.UseItem(Player, item);
         SetMessage(r.message);
+
+        // [11/28] 스탯 아이템 (예: 매력 +1) → 다시 계산·히든 알림
+        if (r.ok && item.statGains != null && item.statGains.Count > 0)
+        {
+            PlayerStats.Recalculate(Player, settings, database);
+            if (RevealScanner.ScanAndNotify(mapView, selector)) SetMessage(r.message + "  " + RevealScanner.Notice);
+        }
+
         Refresh();
     }
 
@@ -230,6 +238,11 @@ public class HomeController : MonoBehaviour
             row.valueText.text = ConditionChecker.StatValue(p, st).ToString();
             row.hintText.text = StatHint(st);
             row.plusButton.interactable = !ReadOnly && p.statPoints > 0;
+
+            // [11/28] 매력은 히든 스탯: 값만 보여 주고, 찍는 버튼·설명 없음
+            bool assignable = GrowthLogic.CanAssign(st);
+            row.plusButton.gameObject.SetActive(assignable);
+            if (!assignable) row.hintText.text = "";
         }
 
         var skills = new List<string>();

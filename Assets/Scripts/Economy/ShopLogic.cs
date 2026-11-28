@@ -151,8 +151,9 @@ public static class ShopLogic
 
         bool hpFull = item.healHp <= 0 || p.currentHp >= p.maxHp;
         bool energyFull = item.healEnergy <= 0 || p.currentEnergy >= p.maxEnergy;
+        bool hasGain = item.statGains != null && item.statGains.Exists(g => g != null && g.amount != 0);
 
-        if (hpFull && energyFull)
+        if (hpFull && energyFull && !hasGain)
         {
             return ShopResult.Fail("지금은 쓸 필요가 없다.");
         }
@@ -163,6 +164,8 @@ public static class ShopLogic
         p.currentEnergy = System.Math.Min(p.maxEnergy, p.currentEnergy + item.healEnergy);
 
         string msg = Josa.Eul(item.itemName) + " 썼다.";
+        string gains = GrowthLogic.ApplyStatGains(p, item.statGains);
+        if (gains != "") msg += " " + gains;
         if (p.currentHp > hpBefore) msg += " 체력 +" + (p.currentHp - hpBefore);
         if (p.currentEnergy > enBefore) msg += " 기력 +" + (p.currentEnergy - enBefore);
         return ShopResult.Ok(msg);
@@ -217,6 +220,7 @@ public static class ShopLogic
                 string c = "";
                 if (item.healHp > 0) c += "체력 +" + item.healHp;
                 if (item.healEnergy > 0) c += (c.Length > 0 ? " · " : "") + "기력 +" + item.healEnergy;
+                if (c == "" && item.statGains != null && item.statGains.Count > 0) c = "[효과 미정]";   // 히든 스탯 아이템은 효과를 밝히지 않는다
                 return c;
         }
     }

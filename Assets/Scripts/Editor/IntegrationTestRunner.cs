@@ -127,6 +127,7 @@ public static class IntegrationTestRunner
         steps = new List<Step>();
         places = new Dictionary<string, PlaceData>();
 
+        BuildIntroFlow();
         Add("noop", "", "map=region,markers=" + region.areas.Count + ",!back,!info");
 
         foreach (var ae in region.areas)
@@ -185,7 +186,7 @@ public static class IntegrationTestRunner
 
                     if (it.type == InteractionType.Investigate)
                     {
-                        Add("click", btn, "resultIs:" + key + (it.revealsMonster != null ? ",infoFlag:" + it.revealsMonster.monsterId : ""));
+                        Add("click", btn, (it.givesItem != null ? "resultStarts:" + key + ",itemGot:" + it.givesItem.itemId : "resultIs:" + key) + (it.revealsMonster != null ? ",infoFlag:" + it.revealsMonster.monsterId : ""));
                         continue;
                     }
 
@@ -536,6 +537,34 @@ public static class IntegrationTestRunner
         SessionState.SetString("it_log", log + "(running " + index + "/" + steps.Count + " pass=" + pass + " fail=" + fail + ")");
     }
 
+    // ---------- [C-6] 게임 시작 흐름: 시작 만화 → 재능 선택 → 도심만 열림 → 병원만 열림 → 병원 들어가면 전부 열림 ----------
+    // Play 시작 때 StartFlowController가 시작 만화를 띄운 상태에서 시작한다 (메뉴 "시작 흐름 건너뛰기"는 꺼 둘 것)
+    static void BuildIntroFlow()
+    {
+        var eco0 = battle.economy;
+        if (eco0 == null || eco0.startArea == null || eco0.startHospital == null) { Add("noop", "", "introDataMissing"); return; }
+
+        var startArea = eco0.startArea;
+        var hospital = eco0.startHospital;
+        var otherArea = region.areas.Find(a => a.area != startArea).area;
+        var otherPlace = startArea.places.Find(e => e.place != hospital && !ConditionChecker.Hidden(GameStateManager.Instance.State, e.condition)).place;
+        int visibleInStart = startArea.places.FindAll(e => !ConditionChecker.Hidden(GameStateManager.Instance.State, e.condition)).Count;
+
+        Add("noop", "", "comicOpen,!pickOpen");
+        Add("click", "Canvas/ComicPanel/SkipButton", "!comicOpen,pickOpen,pickMode=Talent,pickCards=" + Mathf.Min(4, eco0.startTalents.Count) + ",pickTitle=나는 어떤 재능이 있을까?");
+        Add("click", "Canvas/PickPanel/Card1", "!pickOpen,talent:" + eco0.startTalents[1].talentId + ",map=region,locked=" + (region.areas.Count - 1));
+        Add("sel", "area:" + otherArea.areaId, "info,infoLocked");
+        Add("click", ENTER, "map=region");
+        Add("sel", "area:" + startArea.areaId, "info,!infoLocked");
+        Add("click", ENTER, "map=" + startArea.areaId + ",locked=" + (visibleInStart - 1));
+        Add("sel", "place:" + otherPlace.locationId, "info,infoLocked");
+        Add("click", ENTER, "!interior");
+        Add("sel", "place:" + hospital.locationId, "info,!infoLocked");
+        Add("click", ENTER, "interior,introDone,unlockToast,locked=0,respawnIs:" + hospital.locationId);
+        Add("click", EXIT, "!interior,!info,map=" + startArea.areaId + ",locked=0");
+        Add("click", BACK, "map=region,locked=0");
+    }
+
     // ---------- [C-2] 경제 흐름: 전투 → 골드 → 병원 치료 → 장비 구매·장착 → 강화 → 판매 → 히든 상점 → 편의점 ----------
     // 지금 위치: fightArea 구역 맵 (선택 없음)
     static void BuildEconomyFlow(AreaData fightArea, PlaceData fightPlace)
@@ -682,15 +711,34 @@ public static class IntegrationTestRunner
         Add("click", HOME + "GrowthButtons/TalentPickButton", "pickOpen,pickMode=Talent,pickCards=" + Mathf.Min(4, eco.startTalents.Count));
         Add("click", "Canvas/PickPanel/Card0", "!pickOpen,talent:" + eco.startTalents[0].talentId + ",homeOpen");
 
-        // 2) 레벨 업 (테스트 지름길: 경험치 지급) → 스탯 포인트 3 → 매력 3번
+        // 2) 레벨 업 (테스트 지름길: 경험치 지급) → 스탯 포인트 3 → 힘에 3번. 매력은 히든 스탯이라 [+] 없음
         Add("grantLevels", "3", "points=3,profileDot");
-        Add("click", HOME + "StatsTab", "homeTab=Stats");
-        Add("click", HOME + "StatArea/StatRow4/PlusButton", "charm=1,points=2,discount=1" + (hidden != null ? ",!revealed:" + hidden.locationId : ""));
-        Add("click", HOME + "StatArea/StatRow4/PlusButton", "charm=2,points=1");
-        Add("click", HOME + "StatArea/StatRow4/PlusButton", "charm=3,points=0,!profileDot" + (hidden != null ? ",revealed:" + hidden.locationId + ",toast" : ""));
+        Add("click", HOME + "StatsTab", "homeTab=Stats,!charmPlus,charmHint=");
+        Add("click", HOME + "StatArea/StatRow0/PlusButton", "points=2");
+        Add("click", HOME + "StatArea/StatRow0/PlusButton", "points=1");
+        Add("click", HOME + "StatArea/StatRow0/PlusButton", "points=0,str=3,charmVal=0,!profileDot");
         Add("click", HOME + "CloseButton", "!homeOpen");
 
-        // 3) 매력 3으로 드러난 히든 장소
+        // 3) 매력 아이템: 병원 대기실에서 한 번 주움 → 홈 인벤토리에서 사용 → 매력 +1 → 히든 장소 드러남
+        var hospPlace = battle.economy.startHospital;
+        var pick = hospPlace != null ? hospPlace.interactions.Find(x => x.givesItem != null) : null;
+
+        if (pick != null)
+        {
+            Add("resetItemTaken", hospPlace.locationId + ":" + pick.interactionId, "");   // A단계 흐름에서 이미 주웠으므로 (테스트 지름길)
+            Add("sel", "place:" + hospPlace.locationId, "info");
+            Add("click", ENTER, "interior");
+            Add("click", IA + pick.interactionId, "resultStarts:" + hospPlace.locationId + ":" + pick.interactionId + ",itemGot:" + pick.givesItem.itemId);
+            Add("click", IA + pick.interactionId, "resultAfterGiven:" + hospPlace.locationId + ":" + pick.interactionId + ",itemCount:" + pick.givesItem.itemId + "=1");
+            Add("click", EXIT, "info,!interior");
+            Add("click", CLOSEX, "!info");
+            Add("click", "Canvas/TopBar/ProfileButton", "homeOpen");
+            Add("click", HOME + "InventoryTab", "homeTab=Inventory");
+            Add("homeRow", "item:" + pick.givesItem.itemId, "charmVal=1,discount=1,itemCount:" + pick.givesItem.itemId + "=0" + (hidden != null ? ",revealed:" + hidden.locationId + ",toast" : ""));
+            Add("click", HOME + "CloseButton", "!homeOpen");
+        }
+
+        // 4) 매력으로 드러난 히든 장소
         if (hidden != null)
         {
             Add("noop", "", "marker:" + hidden.locationId);
@@ -700,15 +748,15 @@ public static class IntegrationTestRunner
             Add("click", CLOSEX, "!info");
         }
 
-        // 4) 매력 할인: 원가 취소선 + 할인가
-        int price = Mathf.RoundToInt(advWeapon.price * (1f - 3 * eco.discountPerCharm));
+        // 5) 매력 할인: 원가 취소선 + 할인가 (매력 1 = 1%)
+        int price = Mathf.RoundToInt(advWeapon.price * (1f - 1 * eco.discountPerCharm));
         Add("sel", "place:" + shopPlace.locationId, "info");
         Add("click", ENTER, "interior");
         Add("click", IA + equipIt.interactionId, "shopOpen,priceShown:" + advWeapon.itemId + ":<s>" + advWeapon.price + "G</s> " + price + "G");
         Add("click", SHOP_EXIT, "!shopOpen");
         Add("click", EXIT, "info,!interior");
 
-        // 5) 무기 숙련도 10 → 전투 뒤 특성 선택 창 (테스트 지름길: 숙련도 9레벨 + 11)
+        // 6) 무기 숙련도 10 → 전투 뒤 특성 선택 창 (테스트 지름길: 숙련도 9레벨 + 11)
         Add("grantMastery", "", "");
         Add("sel", "place:" + fightPlace.locationId, "info");
         Add("prepBattle", "", "");
@@ -741,19 +789,33 @@ public static class IntegrationTestRunner
         var d = train.training;
         string stat = d.stat.ToString();
 
-        // 1) 성공: 비용을 내고, 목표 구간에 맞춰 멈춤 → 스탯 +1, 다음 비용 증가·구간 좁아짐
+        // 1) 실패: 임계점을 넘김 → 스탯 그대로, 비용은 나감(환불 없음), 다음 비용·하루 횟수 그대로
         Add("grant", "", "");
         Add("sel", "place:" + gym.locationId, "info");
         Add("click", ENTER, "interior");
-        Add("click", IA + train.interactionId, "trainOpen,trainCost=" + d.baseCost);
+        Add("click", IA + train.interactionId, "trainOpen,trainCost=" + d.baseCost + ",!trainBlocked");
         Add("mark", "", "");
         Add("click", TRAIN + "StartButton", "trainRunning,goldDelta=-" + d.baseCost + ",tapArea");
-        Add("trainPlay", "success", "trainResult=Success,statGain:" + stat + "=" + d.gain + ",trainCost=" + (d.baseCost + d.costStep) + ",zoneWidth=" + (d.targetMax - d.targetMin - d.narrowPerTrain) + ",!tapArea");
+        Add("trainPlay", "over", "trainResult=Over,statGain:" + stat + "=0,goldDelta=-" + d.baseCost + ",trainCost=" + d.baseCost + ",!trainBlocked,!tapArea");
 
-        // 2) 실패: 임계점을 넘김 → 스탯 그대로, 비용은 그대로 나감(환불 없음), 다음 비용도 그대로
+        // 2) 성공: 목표 구간에 맞춰 멈춤 → 스탯 +1, 다음 비용 증가·구간 좁아짐 → 오늘은 더 못 함 (하루 한도 1회)
         Add("mark", "", "");
-        Add("click", TRAIN + "StartButton", "trainRunning,goldDelta=-" + (d.baseCost + d.costStep));
-        Add("trainPlay", "over", "trainResult=Over,statGain:" + stat + "=" + d.gain + ",goldDelta=-" + (d.baseCost + d.costStep) + ",trainCost=" + (d.baseCost + d.costStep));
+        Add("click", TRAIN + "StartButton", "trainRunning,goldDelta=-" + d.baseCost);
+        Add("trainPlay", "success", "trainResult=Success,statGain:" + stat + "=" + d.gain + ",trainCost=" + (d.baseCost + d.costStep) +
+            ",zoneWidth=" + (d.targetMax - d.targetMin - d.narrowPerTrain) + ",trainBlocked=" + TrainingLogic.DailyLimitText);
+        Add("mark", "", "");
+        Add("click", TRAIN + "StartButton", "!trainRunning,goldDelta=0");   // 꺼진 버튼: 아무 일 없음
+
+        // 3) 다음 날 (테스트 지름길: 가짜 날짜) → 다시 훈련 가능
+        Add("fakeDays", "1", "");
+        Add("click", TRAIN + "CloseButton", "!trainOpen");
+        Add("click", IA + train.interactionId, "trainOpen,!trainBlocked,trainCost=" + (d.baseCost + d.costStep));
+
+        // 4) 누적 한도: 훈련으로 +10까지 (테스트 지름길: 훈련 횟수 10으로) → 더 이상 훈련 불가
+        Add("setTrainCount", stat + ":" + (battle.economy.trainTotalLimit / Mathf.Max(1, d.gain)), "");
+        Add("click", TRAIN + "CloseButton", "!trainOpen");
+        Add("click", IA + train.interactionId, "trainOpen,trainBlocked=" + TrainingLogic.TotalLimitText);
+        Add("fakeDays", "0", "");
         Add("click", TRAIN + "CloseButton", "!trainOpen");
         Add("click", EXIT, "info,!interior");
 
@@ -899,6 +961,10 @@ public static class IntegrationTestRunner
                 shopUi.Open(places[kv[0]].interactions.Find(x => x.interactionId == kv[1]).shop);
             }
             else if (s.kind == "wait") { }
+            // [11/28·C-6]
+            else if (s.kind == "resetItemTaken") { var kv = s.target.Split(':'); GameStateManager.Instance.State.flags.Remove(StateKeys.ItemTaken(kv[0], kv[1])); }
+            else if (s.kind == "fakeDays") { int days = int.Parse(s.target); TrainingLogic.Clock = days == 0 ? (System.Func<DateTime>)(() => DateTime.Now) : () => DateTime.Now.AddDays(days); }
+            else if (s.kind == "setTrainCount") { var kv = s.target.Split(':'); var st = (StatType)Enum.Parse(typeof(StatType), kv[0]); P.trainCount.Add(st, int.Parse(kv[1]) - P.trainCount.Get(st)); }
             else if (s.kind == "setHp")
             {
                 var bp = battle.Engine.player;
@@ -1088,10 +1154,27 @@ public static class IntegrationTestRunner
                         canvas.Find("PlaceInteriorPanel/PlaceNameText").GetComponent<TMP_Text>().text == st.defaultRespawnPlace.placeName &&
                         p.currentHp == Mathf.Max(1, Mathf.RoundToInt(p.maxHp * st.reviveHpRatio)) && p.gold == 90;
                 }
+                // [C-6] 시작 흐름
+                else if (key == "locked") { int n = 0; foreach (Transform t in mapView.transform) { var mk = t.GetComponent<MapMarker>(); if (mk != null && t.gameObject.activeSelf && mk.Locked) n++; } v = n == int.Parse(val); }
+                else if (e == "infoLocked") v = canvas.Find("LocationInfoPanel/LocationDescriptionText").GetComponent<TMP_Text>().text == LocationSelector.LockedText && !canvas.Find("LocationInfoPanel/EnterButton").GetComponent<Button>().interactable;
+                else if (e == "introDone") v = g.HasFlag(StateKeys.IntroDone);
+                else if (e == "unlockToast") v = NoticeToast.LastText == StartFlowController.UnlockNotice;
+                else if (key == "pickTitle") v = canvas.Find("PickPanel/TitleText").GetComponent<TMP_Text>().text == val;
+                // [11/28] 매력(히든)·아이템·훈련 한도
+                else if (e == "charmPlus") v = Active("HomePanel/Window/StatArea/StatRow4/PlusButton");
+                else if (key == "charmHint") v = canvas.Find("HomePanel/Window/StatArea/StatRow4/HintText").GetComponent<TMP_Text>().text == val;
+                else if (key == "charmVal") v = P.totalStats.charm == int.Parse(val);
+                else if (key == "str") v = P.totalStats.strength == int.Parse(val);
+                else if (e.StartsWith("resultStarts:")) v = res.StartsWith(FindIt(e.Substring(13)).resultText) && res.Length > FindIt(e.Substring(13)).resultText.Length;
+                else if (e.StartsWith("resultAfterGiven:")) v = res == FindIt(e.Substring(17)).afterGivenText;
+                else if (e.StartsWith("itemGot:")) v = P.CountOf(e.Substring(8)) >= 1;
+                else if (e.StartsWith("itemCount:")) { var kv = e.Substring(10).Split('='); v = P.CountOf(kv[0]) == int.Parse(kv[1]); }
+                else if (e == "trainBlocked" && eq < 0) v = !canvas.Find("TrainingPanel/Window/StartButton").GetComponent<Button>().interactable;
+                else if (key == "trainBlocked") v = !canvas.Find("TrainingPanel/Window/StartButton").GetComponent<Button>().interactable && canvas.Find("TrainingPanel/Window/StartButton").GetComponentInChildren<TMP_Text>().text == val;
                 // [C-5] 훈련·연출
                 else if (e == "trainOpen") v = Active("TrainingPanel");
                 else if (key == "trainStat") v = trainUi.Data != null && trainUi.Data.stat.ToString() == val;
-                else if (key == "trainCost") v = TrainingLogic.Cost(P, trainUi.Data) == int.Parse(val) && canvas.Find("TrainingPanel/Window/StartButton").GetComponentInChildren<TMP_Text>().text.Contains(val + "G");
+                else if (key == "trainCost") { var sb0 = canvas.Find("TrainingPanel/Window/StartButton").GetComponent<Button>(); v = TrainingLogic.Cost(P, trainUi.Data) == int.Parse(val) && (!sb0.interactable || sb0.GetComponentInChildren<TMP_Text>().text.Contains(val + "G")); }
                 else if (e == "trainRunning") v = trainUi.Gauge != null && trainUi.Gauge.Result == TrainingResult.Running;
                 else if (e == "tapArea") v = Active("TrainingPanel/TapArea");
                 else if (key == "trainResult") v = trainUi.LastResult.ToString() == val;

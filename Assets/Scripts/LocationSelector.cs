@@ -9,6 +9,9 @@ public class LocationSelector : MonoBehaviour
 {
     private MapMarker selectedMarker;
 
+    // [C-6] 시작 흐름 동안 잠긴 곳의 정보창 문구
+    public const string LockedText = "[아직 갈 수 없다]";
+
     [Header("장소 정보 UI")]
     public GameObject locationInfoPanel;
     public TMP_Text locationNameText;
@@ -238,8 +241,12 @@ public class LocationSelector : MonoBehaviour
 
         if (locationDescriptionText != null)
         {
-            locationDescriptionText.text = marker.Description;
+            locationDescriptionText.text = marker.Locked ? LockedText : marker.Description;
         }
+
+        // [C-6] 시작 흐름 동안 잠긴 곳은 진입 버튼 꺼짐
+        var enter = locationInfoPanel != null ? locationInfoPanel.transform.Find("EnterButton") : null;
+        if (enter != null) enter.GetComponent<UnityEngine.UI.Button>().interactable = !marker.Locked;
 
         Debug.Log("선택: " + marker.DisplayName + " (" + marker.TypeText + ")");
     }
@@ -339,6 +346,12 @@ public class LocationSelector : MonoBehaviour
             return;
         }
 
+        if (selectedMarker.Locked)
+        {
+            Debug.Log("아직 갈 수 없는 곳입니다 (시작 흐름).");
+            return;
+        }
+
         if (selectedMarker.IsArea)
         {
             EnterArea(selectedMarker.Area);
@@ -384,6 +397,9 @@ public class LocationSelector : MonoBehaviour
             Debug.LogWarning("InteractionController가 연결되지 않았습니다.");
         }
 
+        // [C-6] 시작 병원에 처음 들어가면 모든 장소가 열린다
+        bool unlocked = StartFlowController.TryUnlock(GameStateManager.Instance.State, mapView != null ? mapView.economy : null, data);
+
         // [C-2] 병원: 들어가면 복귀 지점이 된다 (성장경제규칙 3번)
         if (data.IsHospital && mapView != null && mapView.CurrentArea != null)
         {
@@ -395,6 +411,12 @@ public class LocationSelector : MonoBehaviour
             {
                 interactionController.ShowNotice("[이 병원이 복귀 지점이 되었다]");
             }
+        }
+
+        if (unlocked)
+        {
+            NoticeToast.Show(StartFlowController.UnlockNotice);
+            RefreshMap();   // 잠긴 마커를 풀어서 다시 그린다 (나가면 구역 맵)
         }
 
         // 장소 이름 표시

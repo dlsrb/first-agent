@@ -52,7 +52,8 @@ public static class PlayerStats
                         case ModTarget.Attack: p.attack += (int)m.value; break;
                         case ModTarget.CritPoints: p.critChance += m.value / 100f; break;
                         case ModTarget.AllStats:
-                            foreach (StatType st in Enum.GetValues(typeof(StatType))) total.Add(st, (int)m.value);
+                            // 매력은 히든 스탯이라 제외 (힘·민첩·정신력·지능)
+                            foreach (StatType st in Enum.GetValues(typeof(StatType))) if (st != StatType.Charm) total.Add(st, (int)m.value);
                             break;
                         case ModTarget.EnhanceGoldPercent: p.enhanceDiscount += m.value / 100f; break;
                         case ModTarget.DropRatePercent: p.dropBonus += m.value / 100f; break;

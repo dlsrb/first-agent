@@ -36,6 +36,7 @@ public class TrainingController : MonoBehaviour
     PlaceData place;
 
     PlayerState Player => GameStateManager.Instance.EnsurePlayer(settings, database);
+    EconomySettings Economy => database != null ? database.economy : null;
 
     public void Open(PlaceData p, TrainingData data)
     {
@@ -60,7 +61,14 @@ public class TrainingController : MonoBehaviour
     {
         if (Data == null || (Gauge != null && Gauge.Result == TrainingResult.Running)) return;
 
-        var g = TrainingLogic.Begin(Player, Data);
+        string reason;
+        if (!TrainingLogic.CanTrain(Player, Data, Economy, out reason))
+        {
+            resultText.text = reason;
+            return;
+        }
+
+        var g = TrainingLogic.Begin(Player, Data, Economy);
 
         if (g == null)
         {
@@ -112,15 +120,13 @@ public class TrainingController : MonoBehaviour
             default: resultText.text = "실패... 목표에 닿지 못했다. (비용은 돌려받지 못한다)"; break;
         }
 
-        // 매력 훈련 등으로 숨겨진 것이 드러났으면 알림
-        if (LastResult == TrainingResult.Success && mapView != null &&
-            RevealScanner.Scan(GameStateManager.Instance.State, mapView.CurrentRegion ?? mapView.startRegion) > 0)
-        {
-            NoticeToast.Show(RevealScanner.Notice);
-            if (selector != null) selector.RefreshMap();
-        }
+        if (LastResult == TrainingResult.Success) RevealScanner.ScanAndNotify(mapView, selector);
 
         ShowIdle(false);
+
+        // 한도에 걸렸으면 결과 뒤에 이어서 알려 준다
+        string reason;
+        if (!TrainingLogic.CanTrain(p, Data, Economy, out reason)) resultText.text += "\n" + reason;
     }
 
     void ShowIdle(bool resetGauge = true)
@@ -136,7 +142,10 @@ public class TrainingController : MonoBehaviour
         timerText.text = "";
         startButton.gameObject.SetActive(true);
         startButtonText.text = "훈련 시작 (" + cost + "G)";
-        startButton.interactable = p.gold >= cost;
+        string reason;
+        bool allowed = TrainingLogic.CanTrain(p, Data, Economy, out reason);
+        startButton.interactable = allowed && p.gold >= cost;
+        if (!allowed) startButtonText.text = reason;
         tapArea.SetActive(false);
 
         if (resetGauge)

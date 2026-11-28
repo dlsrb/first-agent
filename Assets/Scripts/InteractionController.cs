@@ -33,6 +33,12 @@ public class InteractionController : MonoBehaviour
     [Tooltip("[C-5] 훈련 창")]
     public TrainingController trainingController;
 
+    [Header("[11/28] 스탯 증가(아이템 줍기·대화 선택지) 뒤 다시 계산·히든 알림")]
+    public BattleSettings settings;
+    public GameDatabase database;
+    public MapView mapView;
+    public LocationSelector selector;
+
     [Header("이미지 (데이터가 비어 있으면 회색 그대로)")]
     public Image characterImage;
     public Image interiorBackgroundImage;
@@ -185,6 +191,23 @@ public class InteractionController : MonoBehaviour
                 HideChoices();
                 DisplayResult(interaction.resultText);
 
+                // [11/28] 처음 조사하면 아이템을 한 번 준다
+                if (interaction.givesItem != null)
+                {
+                    string key = StateKeys.ItemTaken(LocationIdOf(currentPlace), InteractionIdOf(interaction, currentPlace.interactions.IndexOf(interaction)));
+
+                    if (GameStateManager.Instance.HasFlag(key))
+                    {
+                        DisplayResult(interaction.afterGivenText);
+                    }
+                    else
+                    {
+                        GameStateManager.Instance.SetFlag(key);
+                        GameStateManager.Instance.State.player.AddItem(interaction.givesItem.itemId, 1);
+                        DisplayResult(interaction.resultText + "\n(" + Josa.Eul(interaction.givesItem.itemName) + " 얻었다)");
+                    }
+                }
+
                 // [B-1] 괴이 정보를 주는 조사면 정보 플래그 기록
                 if (interaction.revealsMonster != null)
                 {
@@ -278,6 +301,15 @@ public class InteractionController : MonoBehaviour
         GameStateManager.Instance.SetFlag(StateKeys.TalkChoice(locationId, interactionId, index));
 
         string result = choices[index].result;
+
+        // [11/28] 선택지 결과로 스탯이 오른다 (예: 매력 +1). 히든 스탯이라 값은 따로 알리지 않는다
+        if (choices[index].statGains != null && choices[index].statGains.Count > 0)
+        {
+            var p = GameStateManager.Instance.State.player;
+            GrowthLogic.ApplyStatGains(p, choices[index].statGains);
+            PlayerStats.Recalculate(p, settings, database);
+            RevealScanner.ScanAndNotify(mapView, selector);
+        }
 
         // [9일차] 대화창을 닫고 결과는 결과 텍스트에 표시
         CloseDialogue();

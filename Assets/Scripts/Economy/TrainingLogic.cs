@@ -83,6 +83,42 @@ public class TrainingGauge
 
 public static class TrainingLogic
 {
+    // [11/28] 하루 한도의 "오늘" (기기 시계). 테스트에서 가짜 날짜로 바꾼다
+    public static System.Func<DateTime> Clock = () => DateTime.Now;
+
+    public static string Today => Clock().ToString("yyyy-MM-dd");
+
+    public const string DailyLimitText = "오늘은 더 훈련할 수 없다";
+    public const string TotalLimitText = "더 이상 훈련으로는 오르지 않는다";
+
+    // 오늘 이 스탯을 성공한 횟수
+    public static int TodayCount(PlayerState p, StatType stat)
+    {
+        var d = p.trainDays.Find(x => x.stat == stat.ToString());
+        return d != null && d.date == Today ? d.count : 0;
+    }
+
+    // 훈련할 수 있는지 (막히면 이유). eco가 없으면 한도 없음
+    public static bool CanTrain(PlayerState p, TrainingData d, EconomySettings eco, out string reason)
+    {
+        reason = "";
+        if (eco == null) return true;
+
+        if (eco.trainTotalLimit > 0 && p.trainCount.Get(d.stat) * d.gain >= eco.trainTotalLimit)
+        {
+            reason = TotalLimitText;
+            return false;
+        }
+
+        if (eco.trainDailyLimit > 0 && TodayCount(p, d.stat) >= eco.trainDailyLimit)
+        {
+            reason = DailyLimitText;
+            return false;
+        }
+
+        return true;
+    }
+
     public static int Cost(PlayerState p, TrainingData d)
     {
         return d.baseCost + d.costStep * p.trainCount.Get(d.stat);
@@ -97,11 +133,12 @@ public static class TrainingLogic
         max = mid + width / 2f;
     }
 
-    // 비용을 내고 게이지 시작 (골드 부족이면 null). 실패해도 환불 없음
-    public static TrainingGauge Begin(PlayerState p, TrainingData d)
+    // 비용을 내고 게이지 시작 (골드 부족·한도면 null). 실패해도 환불 없음
+    public static TrainingGauge Begin(PlayerState p, TrainingData d, EconomySettings eco = null)
     {
         int cost = Cost(p, d);
-        if (p.gold < cost) return null;
+        string reason;
+        if (p.gold < cost || !CanTrain(p, d, eco, out reason)) return null;
 
         p.gold -= cost;
         float min, max;
@@ -116,5 +153,11 @@ public static class TrainingLogic
         if (result != TrainingResult.Success) return;
         p.stats.Add(d.stat, d.gain);
         p.trainCount.Add(d.stat, 1);
+
+        // 하루 한도 기록
+        var day = p.trainDays.Find(x => x.stat == d.stat.ToString());
+        if (day == null) { day = new TrainDay { stat = d.stat.ToString() }; p.trainDays.Add(day); }
+        if (day.date != Today) { day.date = Today; day.count = 0; }
+        day.count++;
     }
 }

@@ -47,6 +47,8 @@ public class ItemData : ScriptableObject
     [Header("소비 아이템")]
     public int healHp = 0;
     public int healEnergy = 0;
+    [Tooltip("[11/28] 사용하면 스탯이 오른다 (예: 매력 +1). 회복이 없고 이것만 있으면 전투 중 음식먹기에는 쓰지 않는다")]
+    public List<StatGain> statGains = new List<StatGain>();
 
     [Header("무기")]
     public WeaponType weaponType = WeaponType.Dice;

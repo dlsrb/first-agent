@@ -252,6 +252,21 @@ public class BattleEngineTests
     }
 
     [Test]
+    public void EatFood_IgnoresStatItemsWithoutHealing()
+    {
+        var perfume = ScriptableObject.CreateInstance<ItemData>();
+        perfume.itemId = "perfume"; perfume.type = ItemType.Consumable;
+        perfume.statGains.Add(new StatGain { stat = StatType.Charm, amount = 1 });
+        db.items.Add(perfume);
+
+        var p = Player();
+        p.items.Clear();
+        p.AddItem("perfume", 1);
+        var e = Engine(p, Monster());
+        Assert.IsFalse(e.CanSpecial(SpecialAction.EatFood), "매력 아이템은 음식이 아님");
+    }
+
+    [Test]
     public void MoraleDown_Reduces_PlayerDamage30Percent()
     {
         var e = Engine(Player(), Monster(def: 0, actions: Debuff(morale)));

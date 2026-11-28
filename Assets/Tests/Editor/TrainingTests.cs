@@ -95,6 +95,65 @@ public class TrainingTests
         Assert.AreEqual(80, TrainingLogic.Cost(p, data), "실패는 비용을 올리지 않음");
     }
 
+    // ---------- [11/28] 훈련 한도 ----------
+
+    [TearDown]
+    public void TearDown()
+    {
+        TrainingLogic.Clock = () => System.DateTime.Now;
+    }
+
+    [Test]
+    public void DailyLimit_OnePerStatPerDay_ResetsNextDay()
+    {
+        var eco = UnityEngine.ScriptableObject.CreateInstance<EconomySettings>();   // 하루 1회, 누적 10
+        var day = new System.DateTime(2026, 12, 1, 23, 50, 0);
+        TrainingLogic.Clock = () => day;
+
+        string reason;
+        Assert.IsTrue(TrainingLogic.CanTrain(p, data, eco, out reason));
+        TrainingLogic.Begin(p, data, eco);
+        TrainingLogic.Finish(p, data, TrainingResult.Success);
+
+        Assert.IsFalse(TrainingLogic.CanTrain(p, data, eco, out reason));
+        Assert.AreEqual(TrainingLogic.DailyLimitText, reason);
+        int gold = p.gold;
+        Assert.IsNull(TrainingLogic.Begin(p, data, eco), "한도면 돈도 안 냄");
+        Assert.AreEqual(gold, p.gold);
+
+        var other = new TrainingData { stat = StatType.Agility };
+        Assert.IsTrue(TrainingLogic.CanTrain(p, other, eco, out reason), "한도는 스탯마다");
+
+        day = new System.DateTime(2026, 12, 2, 0, 0, 1);   // 자정 지나 초기화
+        Assert.IsTrue(TrainingLogic.CanTrain(p, data, eco, out reason));
+    }
+
+    [Test]
+    public void DailyLimit_FailureDoesNotCount()
+    {
+        var eco = UnityEngine.ScriptableObject.CreateInstance<EconomySettings>();
+        string reason;
+        TrainingLogic.Begin(p, data, eco);
+        TrainingLogic.Finish(p, data, TrainingResult.Over);
+        Assert.IsTrue(TrainingLogic.CanTrain(p, data, eco, out reason), "실패는 하루 횟수에 안 셈");
+    }
+
+    [Test]
+    public void TotalLimit_TenFromTraining()
+    {
+        var eco = UnityEngine.ScriptableObject.CreateInstance<EconomySettings>();
+        p.trainCount.strength = 9;
+        string reason;
+        Assert.IsTrue(TrainingLogic.CanTrain(p, data, eco, out reason));
+        p.trainCount.strength = 10;
+        Assert.IsFalse(TrainingLogic.CanTrain(p, data, eco, out reason));
+        Assert.AreEqual(TrainingLogic.TotalLimitText, reason);
+
+        p.stats.strength = 30;   // 레벨 포인트 등으로 오른 것은 상관없음
+        p.trainCount.strength = 3;
+        Assert.IsTrue(TrainingLogic.CanTrain(p, data, eco, out reason));
+    }
+
     [Test]
     public void Zone_NeverNarrowerThanMinWidth()
     {

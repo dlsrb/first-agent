@@ -76,6 +76,17 @@ public static class EconomyUIBuilder
         home.pickController = pick; home.mapView = mapView; home.selector = selector;
         BuildToast(canvas.transform);
 
+        // [C-6] 시작 흐름 (씬 루트의 StartFlow 오브젝트) + 지도 잠금 규칙
+        var flowGo = GameObject.Find("StartFlow");
+        if (flowGo == null) { flowGo = new GameObject("StartFlow"); Undo.RegisterCreatedObjectUndo(flowGo, "StartFlow"); }
+        var flow = flowGo.GetComponent<StartFlowController>();
+        if (flow == null) flow = Undo.AddComponent<StartFlowController>(flowGo);   // Unity 객체라 ?? 대신 == null
+        flow.economy = eco; flow.settings = settings; flow.database = db; flow.pickController = pick;
+        EditorUtility.SetDirty(flow);
+        Undo.RecordObject(mapView, "economy");
+        mapView.economy = eco;
+        EditorUtility.SetDirty(mapView);
+
         if (selector != null && selector.battleController != null)
         {
             Undo.RecordObject(selector.battleController, "pick");
@@ -97,6 +108,7 @@ public static class EconomyUIBuilder
         ic.shopController = shop;
         ic.hospitalController = hospital;
         ic.trainingController = training;
+        ic.settings = settings; ic.database = db; ic.mapView = mapView; ic.selector = Object.FindAnyObjectByType<LocationSelector>();
         training.mapView = mapView;
         training.selector = Object.FindAnyObjectByType<LocationSelector>();
 
@@ -166,7 +178,7 @@ public static class EconomyUIBuilder
         var stat = Rect("StatArea", win, Mid, Mid, new Vector2(-390, -20), new Vector2(720, 480));
         hc.statArea = stat.gameObject;
         hc.pointsText = Text("PointsText", stat, "", 30, new Color(0.7f, 0.2f, 0.1f), TextAlignmentOptions.Left, Mid, new Vector2(0, 205), new Vector2(720, 50));
-        UnityAction[] statClicks = { hc.OnStat0, hc.OnStat1, hc.OnStat2, hc.OnStat3, hc.OnStat4 };
+        UnityAction[] statClicks = { hc.OnStat0, hc.OnStat1, hc.OnStat2, hc.OnStat3, null };   // 매력(4번)은 히든 스탯: 버튼 없음 (HomeController가 숨김)
 
         for (int i = 0; i < 5; i++)
         {
