@@ -23,11 +23,26 @@ public class PlayerState
     public int diceCount;
     public int diceFaces;
     public List<string> skillIds = new List<string>();   // 장착 무기의 스킬
+    public StatBlock totalStats = new StatBlock();   // [C-4] 찍은 스탯 + 재능 (조건 판정·표시)
+    public float debuffResist;      // 디버프 무시 확률 (정신력·재능)
+    public float infoChance;        // 전투 시작 시 괴이 정보 획득 확률 (지능)
+    public float shopDiscount;      // 상점 할인 (매력)
+    public float expBonus;          // 경험치 +% (재능)
+    public float dropBonus;         // 드롭 확률 +% (재능)
+    public float enhanceDiscount;   // 강화 골드 −% (재능)
+    public float comboBonus;        // 조합 배수 +% (특성)
+    public bool critExtraDie;       // 치명타 시 주사위 1개 더 (특성)
 
     // ---- 성장 (C-1은 경험치 누적만, 레벨 업은 C-4) ----
     public int level = 1;
     public int exp = 0;
-    public string rankId = "trainee";   // C-2: 병원비. 승급은 C-4
+    public string rankId = "trainee";   // C-2: 병원비, C-4: 승급
+    public int statPoints = 0;           // [C-4] 레벨 업으로 받은 남은 포인트
+    public StatBlock stats = new StatBlock();        // [C-4] 찍은 스탯 (레벨 포인트·훈련)
+    public StatBlock trainCount = new StatBlock();   // [C-5] 스탯별 훈련 횟수
+    public List<string> talentIds = new List<string>();
+    public int pendingTalentPicks = 0;   // 아직 안 고른 재능 수 (새 게임 1, 승급마다 +1)
+    public List<MasteryState> masteries = new List<MasteryState>();
 
     // ---- 복귀 지점 (비어 있으면 BattleSettings 기본값) ----
     public string respawnAreaId = "";
@@ -55,7 +70,8 @@ public class PlayerState
             critChance = b.critChance,
             agility = b.agility,
             diceCount = b.diceCount,
-            diceFaces = b.diceFaces
+            diceFaces = b.diceFaces,
+            pendingTalentPicks = 1   // 시작 재능 (C-6 시작 흐름에서 고름)
         };
 
         foreach (var skill in b.startSkills)
@@ -159,6 +175,21 @@ public class PlayerState
         return true;
     }
 
+    // [C-4] 무기 유형 숙련도 (없으면 만든다)
+    public MasteryState MasteryOf(WeaponType type)
+    {
+        string key = type.ToString();
+        var m = masteries.Find(x => x.weaponType == key);
+
+        if (m == null)
+        {
+            m = new MasteryState { weaponType = key };
+            masteries.Add(m);
+        }
+
+        return m;
+    }
+
     public bool IsEquipped(int uid)
     {
         return uid != 0 && (equippedWeaponUid == uid || equippedArmorUid == uid);
@@ -169,6 +200,12 @@ public class PlayerState
     {
         var p = (PlayerState)MemberwiseClone();
         p.skillIds = new List<string>(skillIds);
+        p.stats = stats.Copy();
+        p.trainCount = trainCount.Copy();
+        p.totalStats = totalStats.Copy();
+        p.talentIds = new List<string>(talentIds);
+        p.masteries = new List<MasteryState>();
+        foreach (var m in masteries) p.masteries.Add(m.Copy());
         p.items = new List<ItemStack>();
         p.equipment = new List<OwnedEquipment>();
 

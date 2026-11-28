@@ -212,6 +212,45 @@ public class BattleEngineTests
         Assert.AreEqual(1, e.playerEffects.Count, "호흡참기로는 못 막음");
     }
 
+    // ---------- [C-4] 스탯·특성 효과 ----------
+
+    [Test]
+    public void DebuffResist_Spirit_IgnoresDebuff()
+    {
+        var p = Player();
+        p.debuffResist = 1f;                   // 판정 0.99 < 1 → 무시
+        var e = Engine(p, Monster(actions: Debuff(morale)));
+        e.Special(SpecialAction.HoldBreath);
+        Assert.AreEqual(0, e.playerEffects.Count, "정신력으로 버팀");
+
+        p.debuffResist = 0f;
+        e.Special(SpecialAction.HoldBreath);
+        Assert.AreEqual(1, e.playerEffects.Count);
+    }
+
+    [Test]
+    public void ComboBonusTrait_MultipliesComboMultiplier()
+    {
+        var p = Player();
+        p.comboBonus = 0.5f;
+        var e = Engine(p, Monster(def: 0));
+        Attack(e, 4, 4);                       // 8 × (2 × 1.5) + 5 = 29
+        Assert.AreEqual(1000 - 29, e.MonsterHp);
+    }
+
+    [Test]
+    public void CritExtraDieTrait_AddsOneDieOnCrit()
+    {
+        var p = Player();
+        p.critExtraDie = true;
+        var e = Engine(p, Monster(def: 0));
+        rng.dice.Enqueue(3); rng.dice.Enqueue(5); rng.dice.Enqueue(4);   // 마지막 4 = 추가 주사위
+        e.RollDice();
+        rng.doubles.Enqueue(0.0);
+        e.ConfirmAttack();                     // (3 + 5 + 4 + 5) × 1.5 = 25.5 → 26
+        Assert.AreEqual(1000 - 26, e.MonsterHp);
+    }
+
     [Test]
     public void MoraleDown_Reduces_PlayerDamage30Percent()
     {

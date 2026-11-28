@@ -30,6 +30,8 @@ public class InteractionController : MonoBehaviour
     [Header("상점·병원 창 (C-2, EconomyUIBuilder가 연결)")]
     public ShopController shopController;
     public HospitalController hospitalController;
+    [Tooltip("[C-5] 훈련 창")]
+    public TrainingController trainingController;
 
     [Header("이미지 (데이터가 비어 있으면 회색 그대로)")]
     public Image characterImage;
@@ -40,6 +42,9 @@ public class InteractionController : MonoBehaviour
 
     // 지금 열려 있는 대화 (선택지를 고를 때 사용)
     private PlaceInteraction currentTalk;
+
+    // [C-4] 지금 보이는 선택지의 원래 번호 (매력 조건으로 숨은 선택지 제외). A = [0], B = [1]
+    private readonly List<int> visibleChoices = new List<int>();
 
     // 템플릿에서 만든 버튼들
     private readonly List<Button> spawnedButtons = new List<Button>();
@@ -144,7 +149,7 @@ public class InteractionController : MonoBehaviour
             // [C-2] 조건: 못 채우면 숨김(히든) 또는 잠긴 채 표시
             bool unlocked = ConditionChecker.Check(GameStateManager.Instance.State, interaction.condition);
 
-            if (!unlocked && interaction.condition.hideIfUnmet)
+            if (ConditionChecker.Hidden(GameStateManager.Instance.State, interaction.condition))
             {
                 Destroy(button.gameObject);
                 continue;
@@ -204,6 +209,13 @@ public class InteractionController : MonoBehaviour
                 if (hospitalController != null) hospitalController.Open(currentPlace);
                 else Debug.LogWarning("HospitalController가 연결되지 않았습니다.");
                 break;
+
+            // [C-5]
+            case InteractionType.Train:
+                HideChoices();
+                if (trainingController != null) trainingController.Open(currentPlace, interaction.training);
+                else Debug.LogWarning("TrainingController가 연결되지 않았습니다.");
+                break;
         }
     }
 
@@ -249,11 +261,14 @@ public class InteractionController : MonoBehaviour
 
         List<TalkChoice> choices = currentTalk.talk.choices;
 
-        if (index >= choices.Count)
+        if (index >= visibleChoices.Count)
         {
             Debug.LogWarning("선택지 " + index + "번 데이터가 없습니다.");
             return;
         }
+
+        // [C-4] 보이는 버튼 번호 → 데이터의 원래 선택지 번호
+        index = visibleChoices[index];
 
         string locationId = LocationIdOf(currentPlace);
         string interactionId = InteractionIdOf(currentTalk, currentPlace.interactions.IndexOf(currentTalk));
@@ -307,19 +322,30 @@ public class InteractionController : MonoBehaviour
             return;
         }
 
-        if (choices == null || choices.Count == 0)
+        // [C-4] 매력 조건 등으로 숨은 선택지는 빼고 보여 준다
+        visibleChoices.Clear();
+
+        if (choices != null)
+        {
+            for (int i = 0; i < choices.Count; i++)
+            {
+                if (choices[i] != null && !ConditionChecker.Hidden(GameStateManager.Instance.State, choices[i].condition)) visibleChoices.Add(i);
+            }
+        }
+
+        if (visibleChoices.Count == 0)
         {
             HideChoices();
             return;
         }
 
-        if (choices.Count > 2)
+        if (visibleChoices.Count > 2)
         {
-            Debug.LogWarning("선택지가 " + choices.Count + "개입니다. 현재 UI는 2개까지만 표시합니다.");
+            Debug.LogWarning("선택지가 " + visibleChoices.Count + "개입니다. 현재 UI는 2개까지만 표시합니다.");
         }
 
-        SetChoiceButton(choiceAButtonText, choices.Count > 0 ? choices[0] : null);
-        SetChoiceButton(choiceBButtonText, choices.Count > 1 ? choices[1] : null);
+        SetChoiceButton(choiceAButtonText, visibleChoices.Count > 0 ? choices[visibleChoices[0]] : null);
+        SetChoiceButton(choiceBButtonText, visibleChoices.Count > 1 ? choices[visibleChoices[1]] : null);
 
         choicePanel.SetActive(true);
     }

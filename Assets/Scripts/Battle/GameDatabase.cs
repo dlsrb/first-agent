@@ -9,6 +9,9 @@ public class GameDatabase : ScriptableObject
     public List<ItemData> items = new List<ItemData>();
     public List<MonsterData> monsters = new List<MonsterData>();
 
+    [Tooltip("[C-4] 성장 규칙·재능·숙련도 (PlayerStats 계산에 사용). 비어 있으면 장비만 계산")]
+    public EconomySettings economy;
+
     public SkillData FindSkill(string id)
     {
         return skills.Find(s => s != null && s.skillId == id);

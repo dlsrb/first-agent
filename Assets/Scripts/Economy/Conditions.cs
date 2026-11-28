@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 
 // 범용 조건 (설계안 6번). 선택지·장소·상호작용·상점 품목·직급 어디에나 붙인다.
-// [C-2] 구조와 판정 틀만. 스탯(매력 등)·재능 판정은 C-4에서 스탯이 생기면 붙인다 (지금은 스탯 0으로 판정).
+// [C-4] 스탯은 PlayerState.totalStats(찍은 포인트 + 재능), 재능은 talentIds로 판정.
+// 매력 조건이 붙은 것은 hideIfUnmet와 관계없이 미달이면 숨긴다 (성장경제규칙 5번).
 public enum ConditionKind
 {
     StatAtLeast,   // stat 이 value 이상 (C-4)
@@ -82,16 +83,27 @@ public static class ConditionChecker
             case ConditionKind.HasItem:
                 return p != null && (p.CountOf(c.key) >= System.Math.Max(1, c.value) || p.equipment.Exists(e => e.itemId == c.key));
             case ConditionKind.TalentOwned:
-                return false;   // C-4
+                return p != null && p.talentIds.Contains(c.key);
         }
 
         return false;
     }
 
-    // C-4에서 PlayerState의 스탯으로 교체. 지금은 스탯이 없으므로 0
     public static int StatValue(PlayerState p, StatType stat)
     {
-        return 0;
+        return p != null && p.totalStats != null ? p.totalStats.Get(stat) : 0;
+    }
+
+    // 매력 조건이 들어 있는지
+    public static bool HasCharm(ConditionSet set)
+    {
+        return set != null && set.all != null && set.all.Exists(c => c != null && c.kind == ConditionKind.StatAtLeast && c.stat == StatType.Charm);
+    }
+
+    // 조건 미달이면 숨겨야 하는지 (hideIfUnmet 또는 매력 조건)
+    public static bool Hidden(GameState state, ConditionSet set)
+    {
+        return set != null && !set.IsEmpty && (set.hideIfUnmet || HasCharm(set)) && !Check(state, set);
     }
 
     // 잠긴 채 보일 때 문구

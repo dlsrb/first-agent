@@ -495,6 +495,17 @@ public class LocationSelector : MonoBehaviour
         return entry != null ? entry.place : null;
     }
 
+    // [C-4] 지도를 다시 그린다 (매력으로 숨겨진 장소가 드러났을 때). 선택은 풀린다
+    public void RefreshMap()
+    {
+        if (mapView == null) return;
+
+        ClearSelection();
+
+        if (mapView.CurrentArea != null) mapView.ShowArea(mapView.CurrentArea);
+        else if (mapView.CurrentRegion != null) mapView.ShowRegion(mapView.CurrentRegion);
+    }
+
     // 장소 내부 → 구역 맵 (ExitButton OnClick)
     public void ExitPlace()
     {

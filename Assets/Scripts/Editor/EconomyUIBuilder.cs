@@ -56,7 +56,7 @@ public static class EconomyUIBuilder
         var db = AssetDatabase.LoadAssetAtPath<GameDatabase>(DatabasePath);
         var eco = AssetDatabase.LoadAssetAtPath<EconomySettings>(EconomyPath);
 
-        foreach (var n in new[] { "TopBar", "ShopPanel", "HospitalPanel", "HomePanel" })
+        foreach (var n in new[] { "TopBar", "ShopPanel", "HospitalPanel", "TrainingPanel", "HomePanel", "PickPanel", "NoticeToast" })
         {
             var old = canvas.transform.Find(n);
             if (old != null) Undo.DestroyObjectImmediate(old.gameObject);
@@ -65,13 +65,27 @@ public static class EconomyUIBuilder
         var selector = Object.FindAnyObjectByType<LocationSelector>();
         var shop = BuildShop(canvas.transform, settings, db, eco);
         var hospital = BuildHospital(canvas.transform, settings, db, eco);
+        var training = BuildTraining(canvas.transform, settings, db);
         var home = BuildHome(canvas.transform, settings, db, eco, selector != null ? selector.battleController : null);
         var top = BuildTopBar(canvas.transform, settings, db);
         top.home = home;
 
+        // [C-4] 재능·특성 선택 창, 알림, 홈 창 연결
+        var pick = BuildPick(canvas.transform, settings, db, eco);
+        pick.mapView = mapView; pick.selector = selector; pick.home = home;
+        home.pickController = pick; home.mapView = mapView; home.selector = selector;
+        BuildToast(canvas.transform);
+
+        if (selector != null && selector.battleController != null)
+        {
+            Undo.RecordObject(selector.battleController, "pick");
+            selector.battleController.pickController = pick;
+            EditorUtility.SetDirty(selector.battleController);
+        }
+
         // 그리는 순서 (뒤가 위): 정보창은 상단 바보다 위 (오른쪽 위에 열려도 X 버튼이 가려지지 않게).
-        // 정보창과 장소 내부는 동시에 열리지 않는다. 홈 창은 전투 위(전투 중 보기), 만화가 맨 위
-        string[] order = { "BackToRegionButton", "PlaceInteriorPanel", "TopBar", "LocationInfoPanel", "ShopPanel", "HospitalPanel", "BattlePanel", "HomePanel", "ComicPanel" };
+        // 정보창과 장소 내부는 동시에 열리지 않는다. 홈 창은 전투 위(전투 중 보기), 선택 창은 홈 위, 만화 위에 알림
+        string[] order = { "BackToRegionButton", "PlaceInteriorPanel", "TopBar", "LocationInfoPanel", "ShopPanel", "HospitalPanel", "TrainingPanel", "BattlePanel", "HomePanel", "PickPanel", "ComicPanel", "NoticeToast" };
 
         for (int i = 0; i < order.Length; i++)
         {
@@ -82,6 +96,19 @@ public static class EconomyUIBuilder
         Undo.RecordObject(ic, "economy ui");
         ic.shopController = shop;
         ic.hospitalController = hospital;
+        ic.trainingController = training;
+        training.mapView = mapView;
+        training.selector = Object.FindAnyObjectByType<LocationSelector>();
+
+        // [C-5] 전투 화면 가장자리 연출 (없으면 붙인다)
+        var battlePanel = canvas.transform.Find("BattlePanel");
+
+        if (battlePanel != null && battlePanel.GetComponent<BattleScreenEffects>() == null)
+        {
+            var fx = Undo.AddComponent<BattleScreenEffects>(battlePanel.gameObject);
+            fx.battle = battlePanel.GetComponent<BattleController>();
+            EditorUtility.SetDirty(fx);
+        }
         EditorUtility.SetDirty(ic);
 
         // [C-3] 전투 화면 프로필 버튼 → 홈 창 (보기 전용)
@@ -95,6 +122,13 @@ public static class EconomyUIBuilder
             UnityEventTools.AddPersistentListener(b.onClick, home.Open);
             b.interactable = true;   // B-2에서는 자리만이라 꺼 두었음
             EditorUtility.SetDirty(b);
+
+            // [C-4] 빨간 점
+            var oldDot = battleProfile.Find("Badge");
+            if (oldDot != null) Undo.DestroyObjectImmediate(oldDot.gameObject);
+            var oldBadge = battleProfile.GetComponent<PendingBadge>();
+            if (oldBadge != null) Undo.DestroyObjectImmediate(oldBadge);
+            AddBadge(battleProfile, db);
         }
 
         EditorSceneManager.MarkSceneDirty(canvas.scene);
@@ -127,6 +161,32 @@ public static class EconomyUIBuilder
         var text = Rect("TextArea", win, Mid, Mid, new Vector2(0, -20), new Vector2(1520, 480));
         hc.textArea = text.gameObject;
         hc.leftText = Text("LeftText", text, "", 30, Dark, TextAlignmentOptions.TopLeft, Mid, new Vector2(-390, 0), new Vector2(720, 470));
+
+        // [C-4] 스탯 탭 왼쪽: 남은 포인트 + 스탯 5줄 (이름 · 값 · 효과 · +)
+        var stat = Rect("StatArea", win, Mid, Mid, new Vector2(-390, -20), new Vector2(720, 480));
+        hc.statArea = stat.gameObject;
+        hc.pointsText = Text("PointsText", stat, "", 30, new Color(0.7f, 0.2f, 0.1f), TextAlignmentOptions.Left, Mid, new Vector2(0, 205), new Vector2(720, 50));
+        UnityAction[] statClicks = { hc.OnStat0, hc.OnStat1, hc.OnStat2, hc.OnStat3, hc.OnStat4 };
+
+        for (int i = 0; i < 5; i++)
+        {
+            var row = Rect("StatRow" + i, stat, Mid, Mid, new Vector2(0, 125 - i * 80), new Vector2(720, 70));
+            var v = new StatRowView();
+            v.nameText = Text("NameText", row, "", 30, Dark, TextAlignmentOptions.Left, Mid, new Vector2(-280, 0), new Vector2(160, 60));
+            v.valueText = Text("ValueText", row, "", 32, Dark, TextAlignmentOptions.Center, Mid, new Vector2(-150, 0), new Vector2(90, 60));
+            v.hintText = Text("HintText", row, "", 22, Gray, TextAlignmentOptions.Left, Mid, new Vector2(80, 0), new Vector2(340, 60));
+            v.plusButton = Button("PlusButton", row, "+", 34, Mid, new Vector2(310, 0), new Vector2(70, 62), statClicks[i]);
+            ((Image)v.plusButton.targetGraphic).color = new Color(1f, 0.92f, 0.7f);
+            hc.statRows.Add(v);
+        }
+
+        // [C-4] 성장 탭: 재능·특성 고르기
+        var gb = Rect("GrowthButtons", win, Mid, Mid, new Vector2(0, -270), new Vector2(1520, 80));
+        hc.growthButtons = gb.gameObject;
+        hc.talentPickButton = Button("TalentPickButton", gb, "재능 고르기", 28, Mid, new Vector2(-560, 0), new Vector2(300, 70), hc.OnTalentPick);
+        hc.talentPickText = hc.talentPickButton.GetComponentInChildren<TMP_Text>();
+        hc.traitPickButton = Button("TraitPickButton", gb, "특성 고르기", 28, Mid, new Vector2(-230, 0), new Vector2(300, 70), hc.OnTraitPick);
+        hc.traitPickText = hc.traitPickButton.GetComponentInChildren<TMP_Text>();
         hc.rightText = Text("RightText", text, "", 30, Dark, TextAlignmentOptions.TopLeft, Mid, new Vector2(390, 0), new Vector2(720, 470));
 
         // 목록 영역 (장비·인벤토리). 장비 탭이면 위에 장착 칸 2개
@@ -283,10 +343,129 @@ public static class EconomyUIBuilder
         tb.goldText = Text("GoldText", gold, "0G", 34, Dark, TextAlignmentOptions.Right, Mid, new Vector2(-10, 0), new Vector2(260, 70));
         Text("GoldLabel", gold, "골드", 26, Gray, TextAlignmentOptions.Left, Mid, new Vector2(-90, 0), new Vector2(100, 60));
 
-        Button("ProfileButton", root, "프로필", 24, Mid, new Vector2(170, 0), new Vector2(100, 100), tb.OnProfile);
+        var profile = Button("ProfileButton", root, "프로필", 24, Mid, new Vector2(170, 0), new Vector2(100, 100), tb.OnProfile);
+        AddBadge(profile.transform, db);
 
         EditorUtility.SetDirty(tb);
         return tb;
+    }
+
+    // ---------- [C-4] 프로필 빨간 점 ----------
+
+    static void AddBadge(Transform button, GameDatabase db)
+    {
+        var dot = Rect("Badge", button, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-8, -8), new Vector2(28, 28));
+        var img = AddImage(dot, new Color(0.9f, 0.1f, 0.1f), AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd"));
+        img.raycastTarget = false;
+        var badge = button.gameObject.AddComponent<PendingBadge>();
+        badge.database = db;
+        badge.dot = dot.gameObject;
+        dot.gameObject.SetActive(false);
+        EditorUtility.SetDirty(badge);
+    }
+
+    // ---------- [C-4] 재능·특성 선택 창 ----------
+
+    static PickController BuildPick(Transform canvas, BattleSettings settings, GameDatabase db, EconomySettings eco)
+    {
+        var root = Rect("PickPanel", canvas, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        Undo.RegisterCreatedObjectUndo(root.gameObject, "PickPanel");
+        AddImage(root, new Color(0f, 0f, 0f, 0.7f), null);
+        var pc = root.gameObject.AddComponent<PickController>();
+        pc.settings = settings; pc.database = db; pc.economy = eco;
+
+        pc.titleText = Text("TitleText", root, "", 46, White, TextAlignmentOptions.Center, Mid, new Vector2(0, 330), new Vector2(1600, 80));
+        UnityAction[] clicks = { pc.OnCard0, pc.OnCard1, pc.OnCard2, pc.OnCard3 };
+
+        for (int i = 0; i < 4; i++)
+        {
+            var b = Button("Card" + i, root, "", 30, Mid, new Vector2(-615 + i * 410, 20), new Vector2(380, 480), clicks[i]);
+            Object.DestroyImmediate(b.transform.Find("Text (TMP)").gameObject);
+            var v = new PickCardView { root = b.gameObject };
+            v.nameText = Text("NameText", b.transform, "", 36, Dark, TextAlignmentOptions.Center, Mid, new Vector2(0, 160), new Vector2(340, 90));
+            v.descText = Text("DescText", b.transform, "", 26, new Color(0.3f, 0.3f, 0.3f), TextAlignmentOptions.Top, Mid, new Vector2(0, -60), new Vector2(330, 300));
+            pc.cards.Add(v);
+        }
+
+        Button("LaterButton", root, "나중에 고르기", 30, Mid, new Vector2(0, -330), new Vector2(300, 80), pc.Close);
+
+        root.gameObject.SetActive(false);
+        EditorUtility.SetDirty(pc);
+        return pc;
+    }
+
+    // ---------- [C-5] 훈련 창 ----------
+
+    static TrainingController BuildTraining(Transform canvas, BattleSettings settings, GameDatabase db)
+    {
+        var root = Rect("TrainingPanel", canvas, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        Undo.RegisterCreatedObjectUndo(root.gameObject, "TrainingPanel");
+        AddImage(root, new Color(0f, 0f, 0f, 0.6f), null);
+        var tc = root.gameObject.AddComponent<TrainingController>();
+        tc.settings = settings; tc.database = db;
+
+        var win = Rect("Window", root, Mid, Mid, Vector2.zero, new Vector2(1400, 700));
+        AddImage(win, new Color(0.93f, 0.93f, 0.93f), uiSprite).type = Image.Type.Sliced;
+
+        tc.titleText = Text("TitleText", win, "", 44, Dark, TextAlignmentOptions.Center, Mid, new Vector2(0, 280), new Vector2(1200, 70));
+        tc.infoText = Text("InfoText", win, "", 30, Dark, TextAlignmentOptions.Center, Mid, new Vector2(0, 175), new Vector2(1300, 100));
+
+        // 게이지: 배경 · 목표 구간(초록) · 채움 · 오른쪽 끝 = 임계점(빨간 선)
+        var gauge = Rect("Gauge", win, Mid, Mid, new Vector2(0, 40), new Vector2(1200, 80));
+        tc.gaugeArea = gauge;
+        AddImage(gauge, new Color(0.2f, 0.2f, 0.22f), square);
+        var zone = Rect("Zone", gauge, new Vector2(0.65f, 0f), new Vector2(0.85f, 1f), Vector2.zero, Vector2.zero);
+        AddImage(zone, new Color(0.3f, 0.85f, 0.4f, 0.45f), square).raycastTarget = false;
+        tc.zoneRect = zone;
+        var fillRt = Rect("Fill", gauge, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(0, -36));
+        var fill = AddImage(fillRt, new Color(0.95f, 0.65f, 0.15f), square);
+        fill.type = Image.Type.Filled;
+        fill.fillMethod = Image.FillMethod.Horizontal;
+        fill.fillAmount = 0f;
+        fill.raycastTarget = false;
+        tc.fill = fill;
+        var limit = Rect("LimitLine", gauge, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(-3, 0), new Vector2(6, 20));
+        AddImage(limit, new Color(0.9f, 0.1f, 0.1f), square).raycastTarget = false;
+        Text("LimitLabel", gauge, "임계점", 22, new Color(0.9f, 0.2f, 0.2f), TextAlignmentOptions.Right, new Vector2(1f, 1f), new Vector2(-60, 30), new Vector2(160, 36));
+
+        tc.timerText = Text("TimerText", win, "", 34, Dark, TextAlignmentOptions.Center, Mid, new Vector2(0, -50), new Vector2(400, 60));
+        tc.resultText = Text("ResultText", win, "", 32, new Color(0.1f, 0.3f, 0.6f), TextAlignmentOptions.Center, Mid, new Vector2(0, -130), new Vector2(1300, 70));
+        tc.startButton = Button("StartButton", win, "훈련 시작", 32, Mid, new Vector2(-170, -250), new Vector2(320, 90), tc.OnStart);
+        tc.startButtonText = tc.startButton.GetComponentInChildren<TMP_Text>();
+        ((Image)tc.startButton.targetGraphic).color = new Color(1f, 0.92f, 0.7f);
+        tc.closeButton = Button("CloseButton", win, "닫기", 32, Mid, new Vector2(190, -250), new Vector2(240, 90), tc.Close);
+
+        // 훈련 중: 화면 어디든 클릭 (창 위를 덮는 투명 버튼)
+        var tap = Rect("TapArea", root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        var tapImg = AddImage(tap, new Color(1f, 1f, 1f, 0.001f), null);
+        var tapBtn = tap.gameObject.AddComponent<Button>();
+        tapBtn.transition = Selectable.Transition.None;
+        tapBtn.targetGraphic = tapImg;
+        UnityEventTools.AddPersistentListener(tapBtn.onClick, tc.OnTap);
+        Text("TapHint", tap, "연타!", 40, new Color(1f, 0.85f, 0.3f), TextAlignmentOptions.Center, Mid, new Vector2(0, -330), new Vector2(600, 70));
+        tap.gameObject.SetActive(false);
+        tc.tapArea = tap.gameObject;
+
+        root.gameObject.SetActive(false);
+        EditorUtility.SetDirty(tc);
+        return tc;
+    }
+
+    // ---------- [C-4] 알림 ----------
+
+    static void BuildToast(Transform canvas)
+    {
+        var root = Rect("NoticeToast", canvas, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -190), new Vector2(1000, 90));
+        Undo.RegisterCreatedObjectUndo(root.gameObject, "NoticeToast");
+        var nt = root.gameObject.AddComponent<NoticeToast>();
+        var box = Rect("Box", root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        var img = AddImage(box, new Color(0.1f, 0.1f, 0.15f, 0.88f), uiSprite);
+        img.type = Image.Type.Sliced;
+        img.raycastTarget = false;
+        nt.text = Text("Text", box, "", 32, new Color(1f, 0.9f, 0.5f), TextAlignmentOptions.Center, Mid, Vector2.zero, new Vector2(960, 80));
+        nt.box = box.gameObject;
+        box.gameObject.SetActive(false);
+        EditorUtility.SetDirty(nt);
     }
 
     // ---------- 도우미 (BattleUIBuilder와 같은 방식) ----------

@@ -14,10 +14,19 @@ public static class ShopLogic
 {
     // ---------- 가격 ----------
 
-    // 매력 할인은 C-4에서 여기 붙인다 (지금은 할인 없음)
+    // [C-4] 매력 할인 (PlayerState.shopDiscount, 매력 1부터 포인트당 1%, 최대 20%)
     public static int BuyPrice(ShopEntry entry, PlayerState p)
     {
-        return entry != null ? entry.BasePrice : 0;
+        if (entry == null) return 0;
+        float d = p != null ? p.shopDiscount : 0f;
+        return (int)System.Math.Round(entry.BasePrice * (1f - d), System.MidpointRounding.AwayFromZero);
+    }
+
+    // [C-4] 강화 골드 (재능 "손재주" 할인)
+    public static int EnhanceGold(EnhanceStep step, PlayerState p)
+    {
+        float d = p != null ? p.enhanceDiscount : 0f;
+        return (int)System.Math.Round(step.gold * (1f - d), System.MidpointRounding.AwayFromZero);
     }
 
     // ---------- 구매 ----------
@@ -117,16 +126,18 @@ public static class ShopLogic
         string matId = eco.materialItem != null ? eco.materialItem.itemId : "";
         int have = p.CountOf(matId);
 
-        if (p.gold < step.gold || have < step.materials)
+        int gold = EnhanceGold(step, p);
+
+        if (p.gold < gold || have < step.materials)
         {
-            return ShopResult.Fail("재료가 부족하다. (" + step.gold + "G·강화석 " + step.materials + "개 필요, 보유 " + p.gold + "G·" + have + "개)");
+            return ShopResult.Fail("재료가 부족하다. (" + gold + "G·강화석 " + step.materials + "개 필요, 보유 " + p.gold + "G·" + have + "개)");
         }
 
-        p.gold -= step.gold;
+        p.gold -= gold;
         if (step.materials > 0) p.RemoveItem(matId, step.materials);
         owned.enhance++;
         PlayerStats.Recalculate(p, settings, db);
-        return ShopResult.Ok(Josa.Ga(NameWithEnhance(item, owned.enhance - 1)) + " " + Josa.Euro("+" + owned.enhance) + " 강화되었다. (-" + step.gold + "G·강화석 " + step.materials + "개)");
+        return ShopResult.Ok(Josa.Ga(NameWithEnhance(item, owned.enhance - 1)) + " " + Josa.Euro("+" + owned.enhance) + " 강화되었다. (-" + gold + "G·강화석 " + step.materials + "개)");
     }
 
     // ---------- [C-3] 소비 아이템 사용 (홈 창 인벤토리, 전투 밖) ----------

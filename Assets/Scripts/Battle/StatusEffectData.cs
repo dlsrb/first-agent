@@ -44,6 +44,10 @@ public class StatusEffectData : ScriptableObject
     [Tooltip("턴 끝마다 회복")]
     public int healPerTurn = 0;
 
+    [Header("연출 (C-5)")]
+    [Tooltip("정신 계열 디버프: 걸려 있는 동안 전투 화면 가장자리가 어두워진다 (UI규칙 3번)")]
+    public bool isMental = false;
+
     [Header("대응")]
     [Tooltip("이 효과를 막는 특수 행동 (그 턴에 쓰면 걸리지 않음)")]
     public SpecialAction blockedBy = SpecialAction.None;

@@ -49,6 +49,22 @@ public class BattleSettings : ScriptableObject
     [Header("온라인용 칸 (지금 사용 안 함). 재도전 보상 배율은 EconomySettings")]
     public float battleCooldownSeconds = 0f;
 
+    [Header("[C-5] 화면 가장자리 연출 (UI규칙 3번)")]
+    [Tooltip("이 체력 비율 이하부터 빨간 가장자리")]
+    [Range(0, 1)] public float lowHpThreshold = 0.3f;
+    public Color lowHpColor = new Color(0.85f, 0.05f, 0.05f, 1f);
+    [Tooltip("기준 체력일 때 진하기")]
+    [Range(0, 1)] public float lowHpAlphaMin = 0.12f;
+    [Tooltip("체력 0에 가까울 때 진하기 (글자·버튼을 가리지 않게 낮게)")]
+    [Range(0, 1)] public float lowHpAlphaMax = 0.28f;
+    [Tooltip("정신 계열 디버프 동안 검은 가장자리")]
+    public Color mentalColor = new Color(0f, 0f, 0f, 1f);
+    [Range(0, 1)] public float mentalAlpha = 0.4f;
+    [Tooltip("나타나고 사라지는 속도 (진하기/초)")]
+    public float edgeFadeSpeed = 0.8f;
+    [Tooltip("가장자리 두께 (0 = 가장자리만, 1 = 가운데까지)")]
+    [Range(0.05f, 1f)] public float edgeWidth = 0.25f;
+
     [Header("주인공 시작 수치")]
     public PlayerBase playerBase = new PlayerBase();
 }

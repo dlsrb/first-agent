@@ -1,4 +1,4 @@
-<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.0.16 Chrome/132.0.6834.196 Electron/34.2.0 Safari/537.36" version="26.0.16" pages="10">
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.0.16 Chrome/132.0.6834.196 Electron/34.2.0 Safari/537.36" version="26.0.16" pages="11">
   <diagram name="전체 맵/공통 상단" id="xPFQ739g_PH_pR2WYLLA">
     <mxGraphModel dx="1276" dy="606" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -336,8 +336,11 @@
         <mxCell id="a7dzOPbTz6S3hCig9AaO-9" value="프로필" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="639" y="40" width="50" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="a7dzOPbTz6S3hCig9AaO-10" value="체력바" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="a7dzOPbTz6S3hCig9AaO-10" value="몬스터 체력바" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="170" y="52.5" width="460" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="w_ov9dkao_XHJAbh4jlO-1" value="플레이어 체력/마나" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="354" y="290" width="120" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
@@ -499,6 +502,41 @@
         </mxCell>
         <mxCell id="0teOa1mL0iGn16yhsoK0-10" value="체력바" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="170" y="52.5" width="460" height="25" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="N6A8PfrBxeTaJeWyeFAj" name="만화 페이지 화면">
+    <mxGraphModel dx="1276" dy="606" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="zDYmS8do1BrlnKL2iC0U-1" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="60" width="660" height="470" as="geometry" />
+        </mxCell>
+        <mxCell id="zDYmS8do1BrlnKL2iC0U-4" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=light-dark(#FFFFFF,#FBFBFB);" vertex="1" parent="1">
+          <mxGeometry x="80" y="270" width="260" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="zDYmS8do1BrlnKL2iC0U-5" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=light-dark(#FFFFFF,#FBFBFB);rotation=-60;" vertex="1" parent="1">
+          <mxGeometry x="276.25" y="169.49" width="245" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="zDYmS8do1BrlnKL2iC0U-6" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=light-dark(#FFFFFF,#FBFBFB);rotation=5;" vertex="1" parent="1">
+          <mxGeometry x="349.82" y="284.19" width="390" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="zDYmS8do1BrlnKL2iC0U-7" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=light-dark(#FFFFFF,#FBFBFB);rotation=90;" vertex="1" parent="1">
+          <mxGeometry x="220" y="400" width="255" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="zDYmS8do1BrlnKL2iC0U-9" value="만화 1번째컷" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="180" y="139.49" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="zDYmS8do1BrlnKL2iC0U-10" value="만화 2번째컷" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="560" y="149.49" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="zDYmS8do1BrlnKL2iC0U-11" value="만화 3번째 컷" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="180" y="400" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="zDYmS8do1BrlnKL2iC0U-12" value="만화 4번째 컷" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="550" y="390" width="60" height="30" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

@@ -20,8 +20,22 @@ MonoBehaviour:
   places:
   - place: {fileID: 11400000, guid: e72a5108da203104b83f6e7d70bb93eb, type: 2}
     mapPosition: {x: 0.35, y: 0.45}
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
   - place: {fileID: 11400000, guid: 334fe582b566a07498feb0d62762f670, type: 2}
     mapPosition: {x: 0.65, y: 0.55}
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  - place: {fileID: 11400000, guid: 80caf5710dde5da4a84f371d9e1c5a1b, type: 2}
+    mapPosition: {x: 0.5, y: 0.85}
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
   encounters:
   - monster: {fileID: 11400000, guid: eb06687012bd7264b86e2ddf12437436, type: 2}
     weight: 1

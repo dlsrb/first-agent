@@ -204,7 +204,7 @@ public class ShopController : MonoBehaviour
                 {
                     if (entry == null || entry.item == null) continue;
                     bool ok = ConditionChecker.Check(State, entry.condition);
-                    if (!ok && entry.condition.hideIfUnmet) continue;
+                    if (ConditionChecker.Hidden(State, entry.condition)) continue;
 
                     var item = entry.item;
                     int price = ShopLogic.BuyPrice(entry, p);
@@ -217,7 +217,9 @@ public class ShopController : MonoBehaviour
                         icon = item.icon,
                         name = item.itemName,
                         info = ShopLogic.EffectText(item) + "\n보유 " + owned + "개",
-                        button = ok ? price + "G 구매" : ConditionChecker.LockedText(entry.condition),
+                        // [C-4] 매력 할인: 원가 취소선 + 할인가
+                        button = !ok ? ConditionChecker.LockedText(entry.condition)
+                               : price < entry.BasePrice ? "<s>" + entry.BasePrice + "G</s> " + price + "G 구매" : price + "G 구매",
                         enabled = ok,
                         onClick = () => OnBuyEntry(en, price)
                     });
@@ -281,7 +283,7 @@ public class ShopController : MonoBehaviour
                         item = item, uid = uid, icon = item.icon,
                         name = ShopLogic.NameWithEnhance(item, eq.enhance) + (p.IsEquipped(uid) ? " (장착)" : ""),
                         info = step != null
-                            ? stat + "\n" + step.gold + "G · 강화석 " + step.materials + "개 (보유 " + p.CountOf(matId) + ")"
+                            ? stat + "\n" + ShopLogic.EnhanceGold(step, p) + "G · 강화석 " + step.materials + "개 (보유 " + p.CountOf(matId) + ")"
                             : stat + "\n최대 강화",
                         button = step != null ? "강화" : "최대",
                         enabled = step != null,
@@ -329,7 +331,7 @@ public class ShopController : MonoBehaviour
         var step = eq != null ? economy.NextEnhance(eq.enhance) : null;
         if (item == null || step == null) return;
 
-        ShowConfirm(ShopLogic.NameWithEnhance(item, eq.enhance) + " → +" + (eq.enhance + 1) + "\n" + step.gold + "G · 강화석 " + step.materials + "개",
+        ShowConfirm(ShopLogic.NameWithEnhance(item, eq.enhance) + " → +" + (eq.enhance + 1) + "\n" + ShopLogic.EnhanceGold(step, Player) + "G · 강화석 " + step.materials + "개",
                     "강화", () => Act(ShopLogic.Enhance(Player, uid, economy, settings, database)), null, null);
     }
 

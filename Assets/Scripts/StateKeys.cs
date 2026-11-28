@@ -32,6 +32,12 @@ public static class StateKeys
         return "boss:defeated:" + monsterId;
     }
 
+    // [C-4] 매력 조건으로 숨겨진 것이 드러났음 (알림을 한 번만). 예: "revealed:place:hidden_spot"
+    public static string Revealed(string what)
+    {
+        return "revealed:" + what;
+    }
+
     // 키에 쓸 수 있는 ID인지 (비어 있지 않고 ':' 없음)
     public static bool IsValidId(string id)
     {

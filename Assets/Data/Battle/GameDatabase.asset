@@ -32,3 +32,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 821bf539697239f49909e67f7ba0c5e7, type: 2}
   - {fileID: 11400000, guid: eb06687012bd7264b86e2ddf12437436, type: 2}
   - {fileID: 11400000, guid: 17556c5727d9f89488b70c07b8546b1e, type: 2}
+  economy: {fileID: 11400000, guid: 1212a96aaa9c6b8459f7bedf31e8528c, type: 2}

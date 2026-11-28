@@ -40,3 +40,58 @@ MonoBehaviour:
     materials: 2
   - gold: 400
     materials: 3
+  ranks:
+  - rankId: trainee
+    rankName: "\uC218\uC2B5 \uC694\uC6D0"
+    minLevel: 1
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+    hospitalCost: 10
+    talentChoices: []
+  - rankId: agent
+    rankName: "\uC694\uC6D0"
+    minLevel: 10
+    condition:
+      all:
+      - kind: 2
+        stat: 4
+        value: 1
+        key: boss:defeated:boss_1
+      hideIfUnmet: 0
+      lockedText: 
+    hospitalCost: 100
+    talentChoices:
+    - {fileID: 11400000, guid: 6ba02d4465850674383510a7d8701d34, type: 2}
+    - {fileID: 11400000, guid: 05aaf40404e550f44b0409feb0074acc, type: 2}
+    - {fileID: 11400000, guid: ec584621002ca0f4dac2c848c1c069cc, type: 2}
+  - rankId: senior
+    rankName: "\uC120\uC784 \uC694\uC6D0"
+    minLevel: 20
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+    hospitalCost: 1000
+    talentChoices: []
+  expBase: 20
+  expStep: 10
+  maxLevel: 30
+  pointsPerLevel: 1
+  attackPerStrength: 1
+  critPerAgility: 0.005
+  hpPerSpirit: 5
+  debuffResistPerSpirit: 0.01
+  debuffResistMax: 0.3
+  energyPerIntellect: 1
+  infoChancePerIntellect: 0.03
+  discountPerCharm: 0.01
+  discountMax: 0.2
+  startTalents:
+  - {fileID: 11400000, guid: 4d5a1580451fcda48bfb0197612c6570, type: 2}
+  - {fileID: 11400000, guid: aa277e0662ef784439c24aaeb57d0f20, type: 2}
+  - {fileID: 11400000, guid: 64d8c50ab4f0ffc4dadc60353826dcaa, type: 2}
+  - {fileID: 11400000, guid: a84b19a26cd762d46b445a1b7472e7cf, type: 2}
+  masteries:
+  - {fileID: 11400000, guid: 0e8da1c8fa960c54f99f53ab1aa87b5d, type: 2}

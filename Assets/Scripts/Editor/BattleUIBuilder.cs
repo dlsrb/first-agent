@@ -187,6 +187,9 @@ public static class BattleUIBuilder
         result.gameObject.SetActive(false);
         bc.resultPopup = result.gameObject;
 
+        // [C-5] 화면 가장자리 연출 (체력 낮음·정신 계열 디버프)
+        panel.gameObject.AddComponent<BattleScreenEffects>().battle = bc;
+
         panel.SetAsLastSibling();
         panel.gameObject.SetActive(false);
 

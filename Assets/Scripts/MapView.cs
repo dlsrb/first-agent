@@ -91,6 +91,12 @@ public class MapView : MonoBehaviour
                 continue;
             }
 
+            // [C-4] 조건(매력 등)이 안 되면 지도에 없음
+            if (GameStateManager.Instance != null && ConditionChecker.Hidden(GameStateManager.Instance.State, entry.condition))
+            {
+                continue;
+            }
+
             CreateMarker(entry.mapPosition, entry.place, null, ColorFor(entry.place.placeType));
         }
     }

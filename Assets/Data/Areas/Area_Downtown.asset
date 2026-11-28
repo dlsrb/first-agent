@@ -20,12 +20,56 @@ MonoBehaviour:
   places:
   - place: {fileID: 11400000, guid: ccefc78ef8387dc4fbd0ef46d39ba1f5, type: 2}
     mapPosition: {x: 0.35, y: 0.72}
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
   - place: {fileID: 11400000, guid: 2a550e478cc502f4ba9115c112279972, type: 2}
     mapPosition: {x: 0.625, y: 0.8333333}
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
   - place: {fileID: 11400000, guid: fe0c61f0af07c534cbcf637c319b7d82, type: 2}
     mapPosition: {x: 0.45, y: 0.35}
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
   - place: {fileID: 11400000, guid: dd6630007e1b0d142bc532250301771e, type: 2}
     mapPosition: {x: 0.82, y: 0.45}
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  - place: {fileID: 11400000, guid: 0dd5cad9248fbcb4a8fd60afa8f2e060, type: 2}
+    mapPosition: {x: 0.2, y: 0.3}
+    condition:
+      all:
+      - kind: 0
+        stat: 4
+        value: 3
+        key: 
+      hideIfUnmet: 0
+      lockedText: 
+  - place: {fileID: 11400000, guid: 8aac7f03cf685ef448ea53a288fc2109, type: 2}
+    mapPosition: {x: 0.12, y: 0.75}
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  - place: {fileID: 11400000, guid: 476612e755935844d805b4ebc07ee04e, type: 2}
+    mapPosition: {x: 0.65, y: 0.58}
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
+  - place: {fileID: 11400000, guid: 12f85bcb173bc4d418a06420a1616d6c, type: 2}
+    mapPosition: {x: 0.3, y: 0.12}
+    condition:
+      all: []
+      hideIfUnmet: 0
+      lockedText: 
   encounters:
   - monster: {fileID: 11400000, guid: b67bc8763e398a0459247122ed8ba2e3, type: 2}
     weight: 1

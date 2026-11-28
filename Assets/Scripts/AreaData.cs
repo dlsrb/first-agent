@@ -63,4 +63,7 @@ public class PlaceEntry
 
     [Tooltip("지도 안의 비율 좌표 (0~1)")]
     public Vector2 mapPosition = new Vector2(0.5f, 0.5f);
+
+    [Tooltip("[C-4] 이 장소가 지도에 나타나는 조건 (매력 조건이면 미달 시 숨김)")]
+    public ConditionSet condition = new ConditionSet();
 }

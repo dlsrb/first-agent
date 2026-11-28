@@ -48,4 +48,6 @@ public class RankData
     public ConditionSet condition = new ConditionSet();
     [Tooltip("병원 전체 치료 비용")]
     public int hospitalCost = 10;
+    [Tooltip("[C-4] 이 직급으로 승급하면 고르는 재능 후보 (1개 선택)")]
+    public List<TalentData> talentChoices = new List<TalentData>();
 }

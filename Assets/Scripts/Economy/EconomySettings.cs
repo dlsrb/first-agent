@@ -42,7 +42,69 @@ public class EconomySettings : ScriptableObject
         new RankData { rankId = "senior", rankName = "선임 요원", minLevel = 20, hospitalCost = 1000 }
     };
 
+    [Header("[C-4] 레벨 (다음 레벨까지 = 기본 + 증가 × (레벨 − 1))")]
+    public int expBase = 20;
+    public int expStep = 10;
+    public int maxLevel = 30;
+    public int pointsPerLevel = 1;
+
+    [Header("[C-4] 스탯 효과 (1포인트당)")]
+    public int attackPerStrength = 1;
+    [Tooltip("민첩 1 = 도망 확률 +BattleSettings.fleeChancePerAgility, 치명 +이 값")]
+    public float critPerAgility = 0.005f;
+    public int hpPerSpirit = 5;
+    public float debuffResistPerSpirit = 0.01f;
+    public float debuffResistMax = 0.3f;
+    public int energyPerIntellect = 1;
+    [Tooltip("전투 시작 시 괴이 정보 자동 획득 확률")]
+    public float infoChancePerIntellect = 0.03f;
+    [Tooltip("상점 가격 할인 (매력 1부터)")]
+    public float discountPerCharm = 0.01f;
+    public float discountMax = 0.2f;
+
+    [Header("[C-4] 재능 (시작 재능. 승급 재능은 직급 칸)")]
+    public List<TalentData> startTalents = new List<TalentData>();
+
+    [Header("[C-4] 무기 숙련도")]
+    public List<WeaponMasteryData> masteries = new List<WeaponMasteryData>();
+
     public int MaxEnhance => enhanceSteps.Count;
+
+    public int ExpToNext(int level)
+    {
+        return expBase + expStep * (level - 1);
+    }
+
+    public WeaponMasteryData MasteryFor(WeaponType type)
+    {
+        return masteries.Find(m => m != null && m.weaponType == type);
+    }
+
+    public TalentData FindTalent(string id)
+    {
+        var t = startTalents.Find(x => x != null && x.talentId == id);
+        if (t != null) return t;
+        foreach (var r in ranks)
+        {
+            t = r.talentChoices.Find(x => x != null && x.talentId == id);
+            if (t != null) return t;
+        }
+        return null;
+    }
+
+    public TraitData FindTrait(string id)
+    {
+        foreach (var m in masteries)
+        {
+            if (m == null) continue;
+            foreach (var tier in m.traitTiers)
+            {
+                if (tier.optionA != null && tier.optionA.traitId == id) return tier.optionA;
+                if (tier.optionB != null && tier.optionB.traitId == id) return tier.optionB;
+            }
+        }
+        return null;
+    }
 
     // 주인공의 직급 (rankId가 없거나 비면 첫 직급)
     public RankData RankOf(PlayerState p)

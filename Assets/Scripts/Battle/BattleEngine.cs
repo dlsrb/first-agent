@@ -321,7 +321,8 @@ public class BattleEngine
         }
 
         roll.combo = allSame;
-        roll.comboMultiplier = allSame ? ComboMultiplier(roll.faces.Length) : 1f;
+        // [C-4] 특성 "조합 배수 강화"
+        roll.comboMultiplier = allSame ? ComboMultiplier(roll.faces.Length) * (1f + player.comboBonus) : 1f;
     }
 
     public List<SkillData> EquippedSkills
@@ -436,6 +437,15 @@ public class BattleEngine
         PendingRoll = null;
 
         bool crit = rng.NextDouble() < player.critChance;
+
+        // [C-4] 특성 "치명타 시 주사위 1개 더": 합에 더한다
+        if (crit && player.critExtraDie)
+        {
+            int extra = rng.Next(1, player.diceFaces + 1);
+            roll.sum += extra;
+            Log("치명타! 주사위 하나 더 → +" + extra);
+        }
+
         int damage = ComputePlayerDamage(roll, crit, true);
 
         var result = new AttackResult { roll = roll, crit = crit, damage = damage };
@@ -643,6 +653,11 @@ public class BattleEngine
                     {
                         Log(Josa.Eul(action.effect.effectName) + " 막았다!");
                         GiveOpening();
+                    }
+                    else if (player.debuffResist > 0f && rng.NextDouble() < player.debuffResist)
+                    {
+                        // [C-4] 정신력: 디버프 무시
+                        Log("정신력으로 " + Josa.Eul(action.effect.effectName) + " 버텼다!");
                     }
                     else
                     {

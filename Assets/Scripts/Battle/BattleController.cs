@@ -14,6 +14,8 @@ public class BattleController : MonoBehaviour
     public GameDatabase database;
     [Tooltip("[C-1] 보상·드롭")]
     public EconomySettings economy;
+    [Tooltip("[C-4] 전투 뒤 특성·승급 재능 선택 창")]
+    public PickController pickController;
 
     [Header("괴이")]
     public TMP_Text monsterNameText;
@@ -132,6 +134,15 @@ public class BattleController : MonoBehaviour
         CurrentPlace = place;
         var player = GameStateManager.Instance.State.player;
         bool knows = GameStateManager.Instance.HasFlag(StateKeys.MonsterInfo(monster.monsterId));
+        bool intellectReveal = false;
+
+        // [C-4] 지능: 전투 시작 시 일정 확률로 괴이 정보 획득
+        if (!knows && player.infoChance > 0f && rng.NextDouble() < player.infoChance)
+        {
+            GameStateManager.Instance.SetFlag(StateKeys.MonsterInfo(monster.monsterId));
+            knows = true;
+            intellectReveal = true;
+        }
 
         Engine = new BattleEngine(settings, database, player, monster, knows, place.battle.allowFlee, rng);
         logCursor = 0;
@@ -147,7 +158,7 @@ public class BattleController : MonoBehaviour
 
         // [B-4] 스토리 전투: 만화를 먼저 보여 준 뒤 전투 시작 (선공도 만화 뒤)
         var intro = place.battle.mode == BattleMode.Story ? place.battle.introComic : null;
-        string opening = knows ? "" : "괴이가 나타났다!";
+        string opening = intellectReveal ? "지능으로 괴이의 정체를 알아냈다!" : knows ? "" : "괴이가 나타났다!";
 
         if (intro != null && ComicViewer.Instance != null)
         {
@@ -566,6 +577,16 @@ public class BattleController : MonoBehaviour
         gameObject.SetActive(false);
         Engine = null;
         BattleFinished?.Invoke(outcome, place);
+
+        // [C-4] 이번 전투에서 새로 생긴 특성·승급 재능 선택만 결과 창 뒤에 바로 묻는다
+        // ("나중에"로 미룬 것은 다시 묻지 않고 프로필 빨간 점으로 남는다)
+        if (pickController != null && economy != null)
+        {
+            var p = GameStateManager.Instance.State.player;
+            var traitType = LastMasteryLevels > 0 ? GrowthLogic.PendingTraitType(p, economy) : null;
+            if (traitType.HasValue) pickController.OpenTraits(traitType.Value);
+            else if (LastPromotions > 0 && GrowthLogic.TalentOptions(p, economy).Count > 0) pickController.OpenTalents();
+        }
     }
 
     // ---------- 진행 ----------
@@ -636,8 +657,8 @@ public class BattleController : MonoBehaviour
                     kind = first ? RewardKind.StoryFirst : RewardKind.StoryRetry;
                 }
 
-                LastReward = RewardCalculator.Roll(economy, Engine.monster, kind, rng ?? new System.Random());
-                RewardCalculator.Apply(p, LastReward);
+                LastReward = RewardCalculator.Roll(economy, Engine.monster, kind, rng ?? new System.Random(), 1f + p.dropBonus);
+                LastLevelsGained = RewardCalculator.Apply(p, LastReward, economy);
                 detail = RewardCalculator.Describe(LastReward) + "\n소지 골드 " + p.gold;
 
                 if (Engine.monster.IsBoss)
@@ -660,9 +681,44 @@ public class BattleController : MonoBehaviour
                 break;
         }
 
+        string growth = ApplyGrowth(p);
+        if (growth != "") detail += "\n" + growth;
+
         resultDetailText.text = detail + "\n체력 " + p.currentHp + "/" + p.maxHp + "  기력 " + p.currentEnergy + "/" + p.maxEnergy;
         Refresh();
         ShowOnly(resultPopup);
+    }
+
+    // [C-4] 전투 뒤 성장: 무기 숙련도(공격 횟수), 승급, 수치 다시 계산. 결과 창 한 줄
+    public int LastLevelsGained { get; private set; }
+    public int LastMasteryLevels { get; private set; }
+    public int LastPromotions { get; private set; }
+
+    string ApplyGrowth(PlayerState p)
+    {
+        var parts = new List<string>();
+        LastMasteryLevels = 0;
+        LastPromotions = 0;
+
+        if (Engine.Outcome != BattleOutcome.Win) LastLevelsGained = 0;
+        if (LastLevelsGained > 0) parts.Add("레벨 업! Lv" + p.level + " (스탯 포인트 +" + LastLevelsGained * (economy != null ? economy.pointsPerLevel : 1) + ")");
+
+        var weapon = PlayerStats.EquippedItem(p, p.equippedWeaponUid, database, ItemType.Weapon);
+
+        if (weapon != null && economy != null)
+        {
+            LastMasteryLevels = GrowthLogic.AddMasteryExp(p, economy, weapon.weaponType, Engine.attackCount);
+            if (LastMasteryLevels > 0) parts.Add("숙련도 Lv" + p.MasteryOf(weapon.weaponType).level);
+        }
+
+        foreach (var r in GrowthLogic.TryPromote(GameStateManager.Instance.State, economy))
+        {
+            parts.Add("승급! " + r.rankName);
+            LastPromotions++;
+        }
+
+        PlayerStats.Recalculate(p, settings, database);
+        return string.Join("  ·  ", parts);
     }
 
     // 아래쪽 영역은 하나만 보인다 (null이면 행동 버튼)

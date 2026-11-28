@@ -1,8 +1,9 @@
 using System;
 
 // 주인공의 계산된 수치를 한곳에서 다시 채운다 (설계안 2번).
-// 기본값(BattleSettings.playerBase) + 장착 장비 + 강화. C-4에서 스탯·재능·숙련도를 여기에 더한다.
-// 장착·강화·레벨 업 등 원본이 바뀔 때마다, 그리고 전투 시작 전에 호출한다.
+// 기본값(BattleSettings.playerBase) + 스탯(찍은 포인트 + 재능) + 재능 + 장착 장비·강화 + 무기 숙련도·특성.
+// 성장 규칙은 GameDatabase.economy (비어 있으면 장비만 계산 — 테스트용).
+// 장착·강화·레벨 업·스탯·재능·특성이 바뀔 때마다, 그리고 전투 시작 전에 호출한다.
 public static class PlayerStats
 {
     public static void Recalculate(PlayerState p, BattleSettings settings, GameDatabase db)
@@ -13,6 +14,7 @@ public static class PlayerStats
         }
 
         var b = settings.playerBase;
+        var eco = db != null ? db.economy : null;
 
         p.maxHp = b.maxHp;
         p.maxEnergy = b.maxEnergy;
@@ -23,12 +25,56 @@ public static class PlayerStats
         p.diceCount = b.diceCount;
         p.diceFaces = b.diceFaces;
         p.skillIds.Clear();
+        p.debuffResist = p.infoChance = p.shopDiscount = p.expBonus = p.dropBonus = p.enhanceDiscount = p.comboBonus = 0f;
+        p.critExtraDie = false;
 
         foreach (var skill in b.startSkills)
         {
             if (skill != null) p.skillIds.Add(skill.skillId);
         }
 
+        // ---- [C-4] 스탯 + 재능 ----
+        var total = p.stats.Copy();
+        float talentDebuff = 0f;
+
+        if (eco != null)
+        {
+            foreach (var id in p.talentIds)
+            {
+                var t = eco.FindTalent(id);
+                if (t == null) continue;
+
+                foreach (var m in t.effects)
+                {
+                    switch (m.target)
+                    {
+                        case ModTarget.MaxHp: p.maxHp += (int)m.value; break;
+                        case ModTarget.Attack: p.attack += (int)m.value; break;
+                        case ModTarget.CritPoints: p.critChance += m.value / 100f; break;
+                        case ModTarget.AllStats:
+                            foreach (StatType st in Enum.GetValues(typeof(StatType))) total.Add(st, (int)m.value);
+                            break;
+                        case ModTarget.EnhanceGoldPercent: p.enhanceDiscount += m.value / 100f; break;
+                        case ModTarget.DropRatePercent: p.dropBonus += m.value / 100f; break;
+                        case ModTarget.ExpPercent: p.expBonus += m.value / 100f; break;
+                        case ModTarget.DebuffResistPoints: talentDebuff += m.value / 100f; break;
+                    }
+                }
+            }
+
+            p.attack += total.strength * eco.attackPerStrength;
+            p.agility += total.agility;
+            p.critChance += total.agility * eco.critPerAgility;
+            p.maxHp += total.spirit * eco.hpPerSpirit;
+            p.debuffResist = Math.Min(eco.debuffResistMax, total.spirit * eco.debuffResistPerSpirit) + talentDebuff;
+            p.maxEnergy += total.intellect * eco.energyPerIntellect;
+            p.infoChance = total.intellect * eco.infoChancePerIntellect;
+            p.shopDiscount = Math.Min(eco.discountMax, total.charm * eco.discountPerCharm);
+        }
+
+        p.totalStats = total;
+
+        // ---- 장비 ----
         var weapon = EquippedItem(p, p.equippedWeaponUid, db, ItemType.Weapon);
 
         if (weapon != null)
@@ -41,6 +87,30 @@ public static class PlayerStats
             {
                 if (skill != null && !p.skillIds.Contains(skill.skillId)) p.skillIds.Add(skill.skillId);
             }
+
+            // ---- [C-4] 장착 무기 유형의 숙련도·특성 ----
+            var rule = eco != null ? eco.MasteryFor(weapon.weaponType) : null;
+
+            if (rule != null)
+            {
+                var m = p.MasteryOf(weapon.weaponType);
+                p.critChance += m.level * rule.critPerLevel;
+                if (rule.attackEveryLevels > 0) p.attack += m.level / rule.attackEveryLevels;
+
+                foreach (var id in m.traitIds)
+                {
+                    var tr = eco.FindTrait(id);
+                    if (tr == null) continue;
+
+                    switch (tr.effect)
+                    {
+                        case TraitEffect.DiceCount: p.diceCount += (int)tr.value; break;
+                        case TraitEffect.DiceFaces: p.diceFaces += (int)tr.value; break;
+                        case TraitEffect.ComboMultiplierPercent: p.comboBonus += tr.value / 100f; break;
+                        case TraitEffect.CritExtraDie: p.critExtraDie = true; break;
+                    }
+                }
+            }
         }
 
         var armor = EquippedItem(p, p.equippedArmorUid, db, ItemType.Armor);
@@ -52,6 +122,7 @@ public static class PlayerStats
         }
 
         p.critChance = Math.Min(1f, Math.Max(0f, p.critChance));
+        p.debuffResist = Math.Min(1f, Math.Max(0f, p.debuffResist));
         p.currentHp = Math.Min(p.currentHp, p.maxHp);
         p.currentEnergy = Math.Min(p.currentEnergy, p.maxEnergy);
     }

@@ -61,6 +61,12 @@ public static class IntegrationTestRunner
     static int markGold, markFood, markHp;
     static ShopController shopUi;
     static HomeController homeUi;
+    // [C-5] 훈련·가장자리 연출
+    const string TRAIN = "Canvas/TrainingPanel/Window/";
+    static TrainingController trainUi;
+    static BattleScreenEffects edgeFx;
+    static bool trainRunning;
+    static PickController pickUi;
     const string HOME = "Canvas/HomePanel/Window/";
     static EconomySettings eco;
 
@@ -93,6 +99,9 @@ public static class IntegrationTestRunner
         shopUi = UnityEngine.Object.FindAnyObjectByType<ShopController>(FindObjectsInactive.Include);
         eco = battle.economy;
         homeUi = UnityEngine.Object.FindAnyObjectByType<HomeController>(FindObjectsInactive.Include);
+        trainUi = UnityEngine.Object.FindAnyObjectByType<TrainingController>(FindObjectsInactive.Include);
+        edgeFx = battle.GetComponent<BattleScreenEffects>();
+        pickUi = UnityEngine.Object.FindAnyObjectByType<PickController>(FindObjectsInactive.Include);
         canvas = GameObject.Find("Canvas").transform;
         region = mapView.startRegion;
 
@@ -126,11 +135,14 @@ public static class IntegrationTestRunner
             bool infoOpen = false;   // 이 구역에서 지금 정보창이 열려 있는지 (마지막 장소에 따라 다름)
 
             Add("sel", "area:" + area.areaId, "info,outline,type=" + DisplayNames.AreaTypeLine(area.areaType) + ",enterImg");
-            Add("click", ENTER, "map=" + area.areaId + ",markers=" + area.places.Count + ",back,!info,camReset");
+            // [C-4] 매력 조건 등으로 숨은 장소는 지도에 없음
+            var visiblePlaces = area.places.FindAll(e => !ConditionChecker.Hidden(GameStateManager.Instance.State, e.condition));
+            foreach (var hp in area.places) if (!visiblePlaces.Contains(hp)) places[hp.place.locationId] = hp.place;
+            Add("click", ENTER, "map=" + area.areaId + ",markers=" + visiblePlaces.Count + ",back,!info,camReset");
 
-            for (int pi = 0; pi < area.places.Count; pi++)
+            for (int pi = 0; pi < visiblePlaces.Count; pi++)
             {
-                var p = area.places[pi].place;
+                var p = visiblePlaces[pi].place;
                 places[p.locationId] = p;
                 Add("sel", "place:" + p.locationId, "info,outline,colorKept,type=" + DisplayNames.PlaceTypeLine(p.placeType));
 
@@ -160,7 +172,7 @@ public static class IntegrationTestRunner
 
                 // [C-2] 조건으로 숨은 상호작용은 버튼이 없어야 함. 병원은 들어가면 복귀 지점 안내
                 var gs = GameStateManager.Instance.State;
-                var shown = p.interactions.FindAll(x => ConditionChecker.Check(gs, x.condition) || !x.condition.hideIfUnmet);
+                var shown = p.interactions.FindAll(x => !ConditionChecker.Hidden(gs, x.condition));
                 string hiddenChecks = "";
                 foreach (var x in p.interactions) if (!shown.Contains(x)) hiddenChecks += ",!btn:" + x.interactionId;
                 Add("click", ENTER, "interior,!battle," + (p.IsHospital ? "notice,respawnIs:" + p.locationId : "result=") +
@@ -179,7 +191,7 @@ public static class IntegrationTestRunner
 
                     if (it.type == InteractionType.Shop)
                     {
-                        int rows = Mathf.Min(4, it.shop.entries.FindAll(x => x.item != null && (ConditionChecker.Check(gs, x.condition) || !x.condition.hideIfUnmet)).Count);
+                        int rows = Mathf.Min(4, it.shop.entries.FindAll(x => x.item != null && !ConditionChecker.Hidden(gs, x.condition)).Count);
                         Add("click", btn, "shopOpen,tab=Buy,shopRows=" + rows + (it.shop.canSell ? ",sellTab" : ",!sellTab") + ",allBlocked");
                         Add("click", SHOP_EXIT, "!shopOpen,interior");
                         continue;
@@ -189,6 +201,13 @@ public static class IntegrationTestRunner
                     {
                         Add("click", btn, "hospOpen,allBlocked");
                         Add("click", HOSP_CLOSE, "!hospOpen,interior");
+                        continue;
+                    }
+
+                    if (it.type == InteractionType.Train)
+                    {
+                        Add("click", btn, "trainOpen,allBlocked,trainStat=" + it.training.stat);
+                        Add("click", TRAIN + "CloseButton", "!trainOpen,interior");
                         continue;
                     }
 
@@ -439,6 +458,25 @@ public static class IntegrationTestRunner
         var s = steps[index];
 
         // [B-4] 전투를 끝까지: 여러 틱에 걸쳐 봇이 버튼을 누르고, 결과 창 확인까지 마치면 확인 단계로
+        // [C-5] 훈련 미니게임: 여러 틱에 걸쳐 화면을 클릭해 결과가 나올 때까지
+        if (s.kind == "trainPlay")
+        {
+            if (!acted)
+            {
+                acted = true;
+                trainRunning = true;
+                actNote = "";
+                return;
+            }
+
+            if (trainRunning)
+            {
+                if (!TrainTick(s.target)) return;
+                trainRunning = false;
+                return;   // 다음 틱에 확인
+            }
+        }
+
         if (s.kind == "battleFull")
         {
             if (!acted)
@@ -459,12 +497,20 @@ public static class IntegrationTestRunner
                 botRunning = false;
                 return;   // 다음 틱에 확인
             }
+
+            // [C-4] 전투 뒤 특성 선택 창이 자동으로 떴는데 이 단계가 기대하지 않으면 "나중에" (빨간 점으로 남음)
+            if (pickUi != null && pickUi.IsOpen && !s.expect.Contains("pickOpen"))
+            {
+                log.Append("  (전투 뒤 " + pickUi.CurrentMode + " 선택 창 → 나중에)\n");
+                pickUi.Close();
+            }
         }
 
         if (!acted)
         {
             actNote = Act(s);
             acted = true;
+            if (s.kind == "wait") nextFrame = Time.frameCount + int.Parse(s.target);   // [C-5] 연출이 서서히 바뀌는 시간
             return;
         }
 
@@ -614,6 +660,140 @@ public static class IntegrationTestRunner
         Add("click", HOME + "InventoryTab", "homeTab=Inventory,homeRowsLocked");
         Add("click", HOME + "CloseButton", "!homeOpen,battle");
         Add("battleExit", "", "!battle");
+
+        BuildGrowthFlow(fightPlace, shopPlace, equipIt, advWeapon);
+    }
+
+    // ---------- [C-4] 성장: 시작 재능 → 레벨 업 → 매력 3 → 히든 장소 드러남·할인 → 숙련도 10 특성 ----------
+    // 지금 위치: 도심 구역 맵 (선택 없음), 새 주인공(경제 흐름) — 시작 재능 대기
+    static void BuildGrowthFlow(PlaceData fightPlace, PlaceData shopPlace, PlaceInteraction equipIt, ItemData advWeapon)
+    {
+        PlaceData hidden = null;
+        foreach (var ae in region.areas)
+            foreach (var pe in ae.area.places)
+                if (ConditionChecker.HasCharm(pe.condition) && hidden == null) hidden = pe.place;
+
+        var gs = GameStateManager.Instance.State;
+
+        // 1) 시작 재능: 빨간 점 → 홈 성장 탭 → 재능 고르기 → 카드 4장 중 첫 번째
+        Add("noop", "", "profileDot");
+        Add("click", "Canvas/TopBar/ProfileButton", "homeOpen");
+        Add("click", HOME + "GrowthTab", "homeTab=Growth");
+        Add("click", HOME + "GrowthButtons/TalentPickButton", "pickOpen,pickMode=Talent,pickCards=" + Mathf.Min(4, eco.startTalents.Count));
+        Add("click", "Canvas/PickPanel/Card0", "!pickOpen,talent:" + eco.startTalents[0].talentId + ",homeOpen");
+
+        // 2) 레벨 업 (테스트 지름길: 경험치 지급) → 스탯 포인트 3 → 매력 3번
+        Add("grantLevels", "3", "points=3,profileDot");
+        Add("click", HOME + "StatsTab", "homeTab=Stats");
+        Add("click", HOME + "StatArea/StatRow4/PlusButton", "charm=1,points=2,discount=1" + (hidden != null ? ",!revealed:" + hidden.locationId : ""));
+        Add("click", HOME + "StatArea/StatRow4/PlusButton", "charm=2,points=1");
+        Add("click", HOME + "StatArea/StatRow4/PlusButton", "charm=3,points=0,!profileDot" + (hidden != null ? ",revealed:" + hidden.locationId + ",toast" : ""));
+        Add("click", HOME + "CloseButton", "!homeOpen");
+
+        // 3) 매력 3으로 드러난 히든 장소
+        if (hidden != null)
+        {
+            Add("noop", "", "marker:" + hidden.locationId);
+            Add("sel", "place:" + hidden.locationId, "info");
+            Add("click", ENTER, "interior");
+            Add("click", EXIT, "info,!interior");
+            Add("click", CLOSEX, "!info");
+        }
+
+        // 4) 매력 할인: 원가 취소선 + 할인가
+        int price = Mathf.RoundToInt(advWeapon.price * (1f - 3 * eco.discountPerCharm));
+        Add("sel", "place:" + shopPlace.locationId, "info");
+        Add("click", ENTER, "interior");
+        Add("click", IA + equipIt.interactionId, "shopOpen,priceShown:" + advWeapon.itemId + ":<s>" + advWeapon.price + "G</s> " + price + "G");
+        Add("click", SHOP_EXIT, "!shopOpen");
+        Add("click", EXIT, "info,!interior");
+
+        // 5) 무기 숙련도 10 → 전투 뒤 특성 선택 창 (테스트 지름길: 숙련도 9레벨 + 11)
+        Add("grantMastery", "", "");
+        Add("sel", "place:" + fightPlace.locationId, "info");
+        Add("prepBattle", "", "");
+        Add("click", ENTER, "battle");
+        Add("battleFull", fightPlace.locationId, "!battle,pickOpen,pickMode=Trait,pickCards=2,profileDot");
+        Add("click", "Canvas/PickPanel/Card0", "!pickOpen,diceCount=" + (battle.settings.playerBase.diceCount + 1) + ",!profileDot");
+
+        BuildTrainingFlow(fightPlace);
+    }
+
+    // ---------- [C-5] 훈련 성공·실패, 전투 가장자리 연출 ----------
+    // 지금 위치: 도심 구역 맵 (선택 없음)
+    static void BuildTrainingFlow(PlaceData fightPlace)
+    {
+        PlaceData gym = null;
+        PlaceInteraction train = null;
+
+        foreach (var pe in region.areas[0].area.places)
+        {
+            var t = pe.place.interactions.Find(x => x.type == InteractionType.Train);
+            if (t != null && gym == null) { gym = pe.place; train = t; }
+        }
+
+        if (gym == null)
+        {
+            Add("noop", "", "trainingPlaceMissing");
+            return;
+        }
+
+        var d = train.training;
+        string stat = d.stat.ToString();
+
+        // 1) 성공: 비용을 내고, 목표 구간에 맞춰 멈춤 → 스탯 +1, 다음 비용 증가·구간 좁아짐
+        Add("grant", "", "");
+        Add("sel", "place:" + gym.locationId, "info");
+        Add("click", ENTER, "interior");
+        Add("click", IA + train.interactionId, "trainOpen,trainCost=" + d.baseCost);
+        Add("mark", "", "");
+        Add("click", TRAIN + "StartButton", "trainRunning,goldDelta=-" + d.baseCost + ",tapArea");
+        Add("trainPlay", "success", "trainResult=Success,statGain:" + stat + "=" + d.gain + ",trainCost=" + (d.baseCost + d.costStep) + ",zoneWidth=" + (d.targetMax - d.targetMin - d.narrowPerTrain) + ",!tapArea");
+
+        // 2) 실패: 임계점을 넘김 → 스탯 그대로, 비용은 그대로 나감(환불 없음), 다음 비용도 그대로
+        Add("mark", "", "");
+        Add("click", TRAIN + "StartButton", "trainRunning,goldDelta=-" + (d.baseCost + d.costStep));
+        Add("trainPlay", "over", "trainResult=Over,statGain:" + stat + "=" + d.gain + ",goldDelta=-" + (d.baseCost + d.costStep) + ",trainCost=" + (d.baseCost + d.costStep));
+        Add("click", TRAIN + "CloseButton", "!trainOpen");
+        Add("click", EXIT, "info,!interior");
+
+        // 3) 전투 가장자리 연출: 체력 30% 이하 빨강(낮을수록 진함) → 회복하면 사라짐, 정신 계열 디버프 동안 검정 → 풀리면 사라짐
+        var s = battle.settings;
+        float a25 = Mathf.Lerp(s.lowHpAlphaMin, s.lowHpAlphaMax, 1f - 0.25f / s.lowHpThreshold);
+        float a10 = Mathf.Lerp(s.lowHpAlphaMin, s.lowHpAlphaMax, 1f - 0.10f / s.lowHpThreshold);
+        Add("sel", "place:" + fightPlace.locationId, "info");
+        Add("prepBattle", "", "");
+        Add("click", ENTER, "battle,!edgeLow,!edgeMental");
+        Add("setHp", "25", "");
+        Add("wait", "90", "edgeLow=" + a25.ToString("0.000") + ",!edgeMental");
+        Add("setHp", "10", "");
+        Add("wait", "90", "edgeLow=" + a10.ToString("0.000"));
+        Add("setHp", "100", "");
+        Add("wait", "90", "!edgeLow");
+        Add("addMental", "", "");
+        Add("wait", "90", "edgeMental=" + s.mentalAlpha.ToString("0.000") + ",!edgeLow");
+        Add("clearMental", "", "");
+        Add("wait", "90", "!edgeMental");
+        Add("battleExit", "", "!battle");
+    }
+
+    // 훈련 봇 한 틱: success = 목표 구간 가운데 근처 유지, over = 한 번에 몰아 클릭. 결과가 나오면 true
+    static bool TrainTick(string mode)
+    {
+        var g = trainUi.Gauge;
+        if (g == null) return true;
+        if (g.Result != TrainingResult.Running) return true;
+
+        int taps;
+        if (mode == "over") taps = 20;
+        else
+        {
+            float mid = (g.ZoneMin + g.ZoneMax) / 2f;
+            taps = Mathf.Clamp(Mathf.CeilToInt((mid - g.Value) / trainUi.Data.tapIncrease), 0, 4);
+        }
+
+        for (int i = 0; i < taps && g.Result == TrainingResult.Running; i++) ClickPath("Canvas/TrainingPanel/TapArea");
+        return g.Result != TrainingResult.Running;
     }
 
     static void GoToArea(ref string cur, AreaData target)
@@ -655,10 +835,13 @@ public static class IntegrationTestRunner
 
                 if (s.target == "boss")
                 {
-                    // 적정 장비(고급 무기·방어구) + 3강 + 음식 3개. 3강은 C-4 성장(약 1시간: 레벨·숙련도) 대신 (시뮬레이션 승률 100%)
+                    // 적정 장비(고급 무기·방어구) + 약 1시간 성장(레벨 7: 힘 3·정신력 3, 주사위 숙련도 9) + 음식 3개 (시뮬레이션 승률 100%, 14.6~17.4턴)
                     var geared = BattleSimulator.WithGear(p, battle.settings, battle.database, ItemGrade.Advanced, ItemGrade.Advanced);
-                    geared.FindEquipment(geared.equippedWeaponUid).enhance = 3;
-                    geared.FindEquipment(geared.equippedArmorUid).enhance = 3;
+                    geared.level = Mathf.Max(geared.level, 7);
+                    geared.stats.strength = Mathf.Max(geared.stats.strength, 3);
+                    geared.stats.spirit = Mathf.Max(geared.stats.spirit, 3);
+                    var dm = geared.MasteryOf(WeaponType.Dice);
+                    if (dm.level < 9) { dm.level = 9; dm.exp = 0; }
                     PlayerStats.Recalculate(geared, battle.settings, battle.database);
                     if (geared.CountOf("food") < 3) geared.AddItem("food", 3 - geared.CountOf("food"));
                     GameStateManager.Instance.State.player = geared;
@@ -714,6 +897,33 @@ public static class IntegrationTestRunner
             {
                 var kv = s.target.Split(':');
                 shopUi.Open(places[kv[0]].interactions.Find(x => x.interactionId == kv[1]).shop);
+            }
+            else if (s.kind == "wait") { }
+            else if (s.kind == "setHp")
+            {
+                var bp = battle.Engine.player;
+                bp.currentHp = Mathf.Max(1, Mathf.RoundToInt(bp.maxHp * int.Parse(s.target) / 100f));
+            }
+            else if (s.kind == "addMental")
+            {
+                var morale = AssetDatabase.LoadAssetAtPath<StatusEffectData>("Assets/Data/Battle/Effects/Effect_Morale.asset");
+                battle.Engine.playerEffects.Add(new ActiveEffect { data = morale, turnsLeft = morale.duration });
+            }
+            else if (s.kind == "clearMental")
+            {
+                battle.Engine.playerEffects.RemoveAll(x => x.data != null && x.data.isMental);
+            }
+            else if (s.kind == "grantLevels")
+            {
+                for (int i = 0; i < int.Parse(s.target); i++) GrowthLogic.AddExp(P, eco, eco.ExpToNext(P.level) - P.exp);
+            }
+            else if (s.kind == "grantMastery")
+            {
+                var m = P.MasteryOf(WeaponType.Dice);
+                var rule = eco.MasteryFor(WeaponType.Dice);
+                m.level = 9;
+                m.exp = rule.expPerLevel - 1;   // 공격 1번이면 10레벨
+                PlayerStats.Recalculate(P, battle.settings, battle.database);
             }
             else if (s.kind == "homeRow")
             {
@@ -878,6 +1088,38 @@ public static class IntegrationTestRunner
                         canvas.Find("PlaceInteriorPanel/PlaceNameText").GetComponent<TMP_Text>().text == st.defaultRespawnPlace.placeName &&
                         p.currentHp == Mathf.Max(1, Mathf.RoundToInt(p.maxHp * st.reviveHpRatio)) && p.gold == 90;
                 }
+                // [C-5] 훈련·연출
+                else if (e == "trainOpen") v = Active("TrainingPanel");
+                else if (key == "trainStat") v = trainUi.Data != null && trainUi.Data.stat.ToString() == val;
+                else if (key == "trainCost") v = TrainingLogic.Cost(P, trainUi.Data) == int.Parse(val) && canvas.Find("TrainingPanel/Window/StartButton").GetComponentInChildren<TMP_Text>().text.Contains(val + "G");
+                else if (e == "trainRunning") v = trainUi.Gauge != null && trainUi.Gauge.Result == TrainingResult.Running;
+                else if (e == "tapArea") v = Active("TrainingPanel/TapArea");
+                else if (key == "trainResult") v = trainUi.LastResult.ToString() == val;
+                else if (e.StartsWith("statGain:")) { var kv = e.Substring(9).Split('='); v = P.trainCount.Get((StatType)System.Enum.Parse(typeof(StatType), kv[0])) == int.Parse(kv[1]) && P.stats.Get((StatType)System.Enum.Parse(typeof(StatType), kv[0])) >= int.Parse(kv[1]); }
+                else if (key == "zoneWidth") { float mn, mx; TrainingLogic.Zone(P, trainUi.Data, out mn, out mx); v = Mathf.Abs((mx - mn) - float.Parse(val)) < 0.01f; }
+                else if (e == "edgeLow" && eq < 0) v = edgeFx.LowHpAlpha > 0.001f;
+                else if (key == "edgeLow") v = Mathf.Abs(edgeFx.LowHpAlpha - float.Parse(val)) < 0.01f && Mathf.Abs(edgeFx.LowHpTarget - float.Parse(val)) < 0.01f;
+                else if (e == "edgeMental" && eq < 0) v = edgeFx.MentalAlpha > 0.001f;
+                else if (key == "edgeMental") v = Mathf.Abs(edgeFx.MentalAlpha - float.Parse(val)) < 0.01f;
+                // [C-4] 성장
+                else if (e == "profileDot") v = Active("TopBar/ProfileButton/Badge");
+                else if (e == "pickOpen") v = Active("PickPanel");
+                else if (key == "pickMode") v = pickUi.CurrentMode.ToString() == val;
+                else if (key == "pickCards") { int n = 0; for (int i = 0; i < 4; i++) if (Active("PickPanel/Card" + i)) n++; v = n == int.Parse(val); }
+                else if (e.StartsWith("talent:")) v = P.talentIds.Contains(e.Substring(7));
+                else if (key == "points") v = P.statPoints == int.Parse(val);
+                else if (key == "charm") v = P.totalStats.charm == int.Parse(val) && canvas.Find("HomePanel/Window/StatArea/StatRow4/ValueText").GetComponent<TMP_Text>().text == val;
+                else if (key == "discount") v = Mathf.RoundToInt(P.shopDiscount * 100) == int.Parse(val);
+                else if (e.StartsWith("revealed:")) v = g.HasFlag(StateKeys.Revealed("place:" + e.Substring(9)));
+                else if (e == "toast") v = NoticeToast.LastText == RevealScanner.Notice && Active("NoticeToast/Box");
+                else if (e.StartsWith("marker:")) v = GameObject.Find("MapView/Marker_" + e.Substring(7)) != null;
+                else if (e.StartsWith("priceShown:"))
+                {
+                    var kv = e.Substring(11).Split(new[] { ':' }, 2);
+                    var row = shopUi.Visible.FindIndex(r => r.item != null && r.item.itemId == kv[0]);
+                    v = row >= 0 && canvas.Find("ShopPanel/Window/Row" + row + "/ActionButton").GetComponentInChildren<TMP_Text>().text.StartsWith(kv[1]);
+                }
+                else if (key == "diceCount") v = P.diceCount == int.Parse(val);
                 // [C-3] 홈 창
                 else if (e == "homeOpen") v = Active("HomePanel");
                 else if (e == "homeReadOnly") v = homeUi.ReadOnly;

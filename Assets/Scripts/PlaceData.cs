@@ -97,7 +97,8 @@ public enum InteractionType
     Investigate,
     Talk,
     Shop,      // [C-2] 상점 창 (shop)
-    Hospital   // [C-2] 병원 창 (전체 치료). 이 상호작용이 있는 장소에 들어가면 복귀 지점이 된다
+    Hospital,  // [C-2] 병원 창 (전체 치료). 이 상호작용이 있는 장소에 들어가면 복귀 지점이 된다
+    Train      // [C-5] 스탯 훈련 미니게임 (training)
 }
 
 // 장소 내부 버튼 1개
@@ -125,6 +126,9 @@ public class PlaceInteraction
     [Tooltip("[C-2] Shop: 열 상점")]
     public ShopData shop;
 
+    [Tooltip("[C-5] Train: 훈련 스탯·비용·게이지")]
+    public TrainingData training = new TrainingData();
+
     [Tooltip("[C-2] 버튼이 보이거나 눌리는 조건 (예: 히든 상점 = 매력 5 이상, 숨김)")]
     public ConditionSet condition = new ConditionSet();
 }
@@ -150,6 +154,9 @@ public class TalkData
 public class TalkChoice
 {
     public string text = "[선택지 미정]";
+
+    [Tooltip("[C-4] 이 선택지가 보이는 조건 (매력 조건이면 미달 시 숨김)")]
+    public ConditionSet condition = new ConditionSet();
 
     [TextArea(2, 5)]
     public string result = "[결과 미정]";

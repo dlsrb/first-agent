@@ -19,7 +19,9 @@ MonoBehaviour:
   duration: 3
   attackPercent: -50
   defensePercent: 0
+  damageTakenPercent: 0
   defenseChancePoints: 0
   damagePerTurn: 0
   healPerTurn: 0
+  isMental: 1
   blockedBy: 3

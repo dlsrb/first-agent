@@ -21,7 +21,8 @@ public class BattleReward
 // 전투 보상 계산 (순수 C#, 난수 주입). 게임·시뮬레이터·테스트 공용. docs/성장경제규칙.md 1번
 public static class RewardCalculator
 {
-    public static BattleReward Roll(EconomySettings eco, MonsterData monster, RewardKind kind, Random rng)
+    // dropMultiplier: [C-4] 재능 "행운아" 등 (1 = 그대로)
+    public static BattleReward Roll(EconomySettings eco, MonsterData monster, RewardKind kind, Random rng, float dropMultiplier = 1f)
     {
         var r = new BattleReward { kind = kind };
 
@@ -43,17 +44,17 @@ public static class RewardCalculator
 
         var chances = kind == RewardKind.Normal ? eco.normalDrops : eco.storyDrops;
 
-        if (eco.materialItem != null && rng.NextDouble() < chances.material)
+        if (eco.materialItem != null && rng.NextDouble() < chances.material * dropMultiplier)
         {
             r.materials.Add(eco.materialItem);
         }
 
-        if (rng.NextDouble() < chances.advanced)
+        if (rng.NextDouble() < chances.advanced * dropMultiplier)
         {
             AddFromPool(r, eco.advancedPool, rng);
         }
 
-        if (rng.NextDouble() < chances.rare)
+        if (rng.NextDouble() < chances.rare * dropMultiplier)
         {
             AddFromPool(r, eco.rarePool, rng);
         }
@@ -71,11 +72,15 @@ public static class RewardCalculator
         }
     }
 
-    // 보상을 주인공에게 넣는다 (장비는 장착하지 않고 소지)
-    public static void Apply(PlayerState p, BattleReward r)
+    // 보상을 주인공에게 넣는다 (장비는 장착하지 않고 소지). [C-4] 경험치 재능 보너스, eco가 있으면 레벨 업 → 오른 레벨 수
+    public static int Apply(PlayerState p, BattleReward r, EconomySettings eco = null)
     {
         p.gold += r.gold;
-        p.exp += r.exp;
+        r.exp = (int)Math.Round(r.exp * (1f + p.expBonus), MidpointRounding.AwayFromZero);
+        int levels = 0;
+
+        if (eco != null) levels = GrowthLogic.AddExp(p, eco, r.exp);
+        else p.exp += r.exp;
 
         foreach (var m in r.materials)
         {
@@ -86,6 +91,8 @@ public static class RewardCalculator
         {
             p.AddEquipment(e.itemId);
         }
+
+        return levels;
     }
 
     // 결과 창 문구

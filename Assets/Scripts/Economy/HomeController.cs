@@ -6,7 +6,7 @@ using TMPro;
 
 // 홈·스탯 창 (Canvas/HomePanel, EconomyUIBuilder가 만든다). 성장경제규칙 7번.
 // 상단 바·전투 화면의 프로필 버튼으로 연다. 전투 중에는 보기만 (장착·사용 불가).
-// 탭: 스탯 / 장비 / 인벤토리 / 성장(숙련도·직급·재능). 스탯 5개·숙련도·재능은 C-4 전까지 표시 자리만.
+// 탭: 스탯(레벨 업 포인트 찍기) / 장비 / 인벤토리 / 성장(숙련도·특성·직급·재능, 재능·특성 고르기).
 public class HomeController : MonoBehaviour
 {
     public enum Tab { Stats, Equipment, Inventory, Growth }
@@ -42,6 +42,21 @@ public class HomeController : MonoBehaviour
     public TMP_Text pageText;
     public Button prevPageButton;
     public Button nextPageButton;
+
+    [Header("[C-4] 스탯 찍기 (스탯 탭)")]
+    public GameObject statArea;
+    public List<StatRowView> statRows = new List<StatRowView>();
+    public TMP_Text pointsText;
+
+    [Header("[C-4] 고르기 버튼 (성장 탭)")]
+    public GameObject growthButtons;
+    public Button talentPickButton;
+    public TMP_Text talentPickText;
+    public Button traitPickButton;
+    public TMP_Text traitPickText;
+    public PickController pickController;
+    public MapView mapView;
+    public LocationSelector selector;
 
     [Header("아래")]
     public TMP_Text summaryText;
@@ -85,6 +100,39 @@ public class HomeController : MonoBehaviour
     public void OnRow1() { ClickRow(1); }
     public void OnRow2() { ClickRow(2); }
     public void OnRow3() { ClickRow(3); }
+
+    // [C-4] 스탯 + 버튼 (StatType 순서: 힘·민첩·정신력·지능·매력)
+    public void OnStat0() { AddStat(StatType.Strength); }
+    public void OnStat1() { AddStat(StatType.Agility); }
+    public void OnStat2() { AddStat(StatType.Spirit); }
+    public void OnStat3() { AddStat(StatType.Intellect); }
+    public void OnStat4() { AddStat(StatType.Charm); }
+
+    public void OnTalentPick() { if (!ReadOnly && pickController != null) pickController.OpenTalents(); }
+
+    public void OnTraitPick()
+    {
+        var t = GrowthLogic.PendingTraitType(Player, economy);
+        if (!ReadOnly && pickController != null && t.HasValue) pickController.OpenTraits(t.Value);
+    }
+
+    void AddStat(StatType st)
+    {
+        if (ReadOnly || !GrowthLogic.AssignPoint(Player, st)) return;
+
+        PlayerStats.Recalculate(Player, settings, database);
+        SetMessage(DisplayNames.Stat(st) + " +1");
+
+        // [C-4] 매력 등으로 숨겨진 것이 드러났으면 알림 + 지도 다시 그리기
+        if (mapView != null && RevealScanner.Scan(GameStateManager.Instance.State, mapView.CurrentRegion ?? mapView.startRegion) > 0)
+        {
+            NoticeToast.Show(RevealScanner.Notice);
+            SetMessage(RevealScanner.Notice);
+            if (selector != null) selector.RefreshMap();
+        }
+
+        Refresh();
+    }
 
     public void OnUnequipWeapon() { Unequip(ItemType.Weapon); }
     public void OnUnequipArmor() { Unequip(ItemType.Armor); }
@@ -142,6 +190,9 @@ public class HomeController : MonoBehaviour
 
         bool list = CurrentTab == Tab.Equipment || CurrentTab == Tab.Inventory;
         if (textArea != null) textArea.SetActive(!list);
+        if (statArea != null) statArea.SetActive(CurrentTab == Tab.Stats);
+        if (leftText != null) leftText.gameObject.SetActive(CurrentTab != Tab.Stats);
+        if (growthButtons != null) growthButtons.SetActive(CurrentTab == Tab.Growth);
         if (listArea != null) listArea.SetActive(list);
         if (slotArea != null) slotArea.SetActive(CurrentTab == Tab.Equipment);
 
@@ -153,7 +204,7 @@ public class HomeController : MonoBehaviour
         var rank = economy != null ? economy.RankOf(p) : null;
         if (summaryText != null)
         {
-            summaryText.text = "레벨 " + p.level + " · " + (rank != null ? rank.rankName : "-") + "    체력 " + p.currentHp + "/" + p.maxHp +
+            summaryText.text = "레벨 " + p.level + " (" + p.exp + "/" + (economy != null ? economy.ExpToNext(p.level) : 0) + ") · " + (rank != null ? rank.rankName : "-") + "    체력 " + p.currentHp + "/" + p.maxHp +
                                "    기력 " + p.currentEnergy + "/" + p.maxEnergy + "    " + p.gold + "G";
         }
 
@@ -168,14 +219,18 @@ public class HomeController : MonoBehaviour
 
     void ShowStats(PlayerState p)
     {
-        // 왼쪽: 스탯 5개 (C-4 전까지 표시만). 오른쪽: 계산된 전투 수치
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("<b>스탯</b>   (레벨 업 포인트는 C-4)");
-        foreach (StatType st in Enum.GetValues(typeof(StatType)))
+        // 왼쪽: 스탯 5개 + 찍기 버튼 (값 = 찍은 포인트 + 재능). 오른쪽: 계산된 전투 수치
+        if (pointsText != null) pointsText.text = "남은 스탯 포인트  " + p.statPoints;
+
+        for (int i = 0; i < statRows.Count; i++)
         {
-            sb.AppendLine(DisplayNames.Stat(st) + "   " + ConditionChecker.StatValue(p, st) + "   " + StatHint(st));
+            var st = (StatType)i;
+            var row = statRows[i];
+            row.nameText.text = DisplayNames.Stat(st);
+            row.valueText.text = ConditionChecker.StatValue(p, st).ToString();
+            row.hintText.text = StatHint(st);
+            row.plusButton.interactable = !ReadOnly && p.statPoints > 0;
         }
-        leftText.text = sb.ToString();
 
         var skills = new List<string>();
         foreach (var id in p.skillIds)
@@ -192,7 +247,8 @@ public class HomeController : MonoBehaviour
                          "치명타  " + Mathf.RoundToInt(p.critChance * 100) + "%\n" +
                          "도망 확률  " + Mathf.RoundToInt(Mathf.Min(settings.fleeChanceMax, settings.fleeChanceBase + p.agility * settings.fleeChancePerAgility) * 100) + "%\n" +
                          "주사위  " + p.diceCount + "개 × " + p.diceFaces + "면\n" +
-                         "스킬  " + (skills.Count > 0 ? string.Join(", ", skills) : "없음");
+                         "스킬  " + (skills.Count > 0 ? string.Join(", ", skills) : "없음") + "\n" +
+                         "디버프 무시  " + Mathf.RoundToInt(p.debuffResist * 100) + "%   상점 할인  " + Mathf.RoundToInt(p.shopDiscount * 100) + "%";
     }
 
     static string StatHint(StatType st)
@@ -210,10 +266,39 @@ public class HomeController : MonoBehaviour
 
     void ShowGrowth(PlayerState p, RankData rank)
     {
-        leftText.text = "<b>무기 숙련도</b>\n주사위   [C-4]\n\n<b>특성</b>\n[C-4]";
-        rightText.text = "<b>직급</b>\n" + (rank != null ? rank.rankName : "-") + "\n병원비 " + (economy != null ? economy.HospitalCost(p) : 0) + "G" +
-                         "\n\n<b>경험치</b>\n" + p.exp + "  (레벨 업은 C-4)" +
-                         "\n\n<b>재능</b>\n[C-4]";
+        // 왼쪽: 무기 숙련도·특성
+        var sb = new System.Text.StringBuilder("<b>무기 숙련도</b>\n");
+
+        if (economy != null)
+        {
+            foreach (var rule in economy.masteries)
+            {
+                if (rule == null) continue;
+                var m = p.MasteryOf(rule.weaponType);
+                sb.AppendLine(rule.displayName + "  Lv" + m.level + "  (" + m.exp + "/" + rule.expPerLevel + ")");
+                var names = new List<string>();
+                foreach (var id in m.traitIds) { var t = economy.FindTrait(id); if (t != null) names.Add(t.traitName); }
+                sb.AppendLine("특성: " + (names.Count > 0 ? string.Join(", ", names) : "없음"));
+            }
+        }
+
+        leftText.text = sb.ToString();
+
+        // 오른쪽: 직급·재능
+        var talents = new List<string>();
+        if (economy != null) foreach (var id in p.talentIds) { var t = economy.FindTalent(id); if (t != null) talents.Add(t.talentName); }
+        int next = economy != null ? economy.ranks.IndexOf(rank) + 1 : 0;
+        string nextRank = economy != null && next > 0 && next < economy.ranks.Count ? "\n다음: " + economy.ranks[next].rankName + " (레벨 " + economy.ranks[next].minLevel + ")" : "";
+
+        rightText.text = "<b>직급</b>\n" + (rank != null ? rank.rankName : "-") + "   병원비 " + (economy != null ? economy.HospitalCost(p) : 0) + "G" + nextRank +
+                         "\n\n<b>재능</b>\n" + (talents.Count > 0 ? string.Join(", ", talents) : "없음");
+
+        int talentPicks = GrowthLogic.TalentOptions(p, economy).Count > 0 ? p.pendingTalentPicks : 0;
+        bool trait = GrowthLogic.PendingTraitType(p, economy) != null;
+        if (talentPickText != null) talentPickText.text = "재능 고르기" + (talentPicks > 0 ? " (" + talentPicks + ")" : "");
+        if (traitPickText != null) traitPickText.text = "특성 고르기" + (trait ? " (1)" : "");
+        if (talentPickButton != null) talentPickButton.interactable = !ReadOnly && talentPicks > 0;
+        if (traitPickButton != null) traitPickButton.interactable = !ReadOnly && trait;
     }
 
     void ShowSlots(PlayerState p)
@@ -308,4 +393,14 @@ public class HomeController : MonoBehaviour
         var img = b.targetGraphic as Image;
         if (img != null) img.color = on ? new Color(1f, 0.85f, 0.4f) : Color.white;
     }
+}
+
+// [C-4] 스탯 한 줄 (이름 · 값 · 효과 · + 버튼)
+[Serializable]
+public class StatRowView
+{
+    public TMP_Text nameText;
+    public TMP_Text valueText;
+    public TMP_Text hintText;
+    public Button plusButton;
 }

@@ -39,6 +39,14 @@ MonoBehaviour:
   defaultRespawnArea: {fileID: 11400000, guid: 5202d42ba449be748ba288b9c364756e, type: 2}
   defaultRespawnPlace: {fileID: 11400000, guid: ccefc78ef8387dc4fbd0ef46d39ba1f5, type: 2}
   battleCooldownSeconds: 0
+  lowHpThreshold: 0.3
+  lowHpColor: {r: 0.85, g: 0.05, b: 0.05, a: 1}
+  lowHpAlphaMin: 0.12
+  lowHpAlphaMax: 0.28
+  mentalColor: {r: 0, g: 0, b: 0, a: 1}
+  mentalAlpha: 0.4
+  edgeFadeSpeed: 0.8
+  edgeWidth: 0.25
   playerBase:
     maxHp: 100
     maxEnergy: 10
